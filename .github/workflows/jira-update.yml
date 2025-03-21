@@ -1,0 +1,44 @@
+name: Update Jira Issue on PR Merge
+
+on:
+  pull_request:
+    types: [closed]  # PR이 'Closed' (즉, 머지됨)될 때 실행
+
+jobs:
+  update-jira:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Extract Jira Issue Key from PR Title
+        id: extract_issue_key
+        run: |
+          # PR 제목에서 JIRA-123 같은 이슈 키 추출
+          ISSUE_KEY=$(echo "${{ github.event.pull_request.title }}" | grep -oE '[A-Z]+-[0-9]+')
+          echo "Extracted Jira Issue Key: $ISSUE_KEY"
+          echo "ISSUE_KEY=$ISSUE_KEY" >> $GITHUB_ENV
+
+      - name: Update Jira Issue Status
+        env:
+          JIRA_URL: ${{ secrets.JIRA_URL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+          JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
+          ISSUE_KEY: ${{ env.ISSUE_KEY }}
+        run: |
+          if [ -z "$ISSUE_KEY" ]; then
+            echo "No Jira Issue Key found in PR title. Skipping update."
+            exit 0
+          fi
+
+          # Jira API 호출하여 이슈 상태 변경 (예: 'Done' 상태로 변경)
+          curl --request POST \
+            --url "$JIRA_URL/rest/api/3/issue/$ISSUE_KEY/transitions" \
+            --user "$JIRA_EMAIL:$JIRA_API_TOKEN" \
+            --header "Accept: application/json" \
+            --header "Content-Type: application/json" \
+            --data '{
+              "transition": {
+                "id": "31"  # 'Done' 상태의 전환 ID (Jira 설정에서 확인 가능)
+              }
+            }'
