@@ -49,9 +49,7 @@ jobs:
           issuetype: Task
           summary: "${{ github.event.issue.title }}"
           description: "${{ steps.md2jira.outputs.output-text }}"
-          fields: >
-            ${{ steps.issue-parser.outputs.issueparser_parentKey != '' && '{"parent": {"key": "' }}${{ steps.issue-parser.outputs.issueparser_parentKey }}${{ steps.issue-parser.outputs.issueparser_parentKey != '' && '"}}' || '{}' }}
-
+          
       - name: Log created issue
         run: |
           echo "Jira Issue ${{ steps.issue-parser.outputs.parentKey || 'NoParent' }}/${{ steps.create.outputs.issue }} was created"
