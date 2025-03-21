@@ -49,8 +49,8 @@ jobs:
           issuetype: 10001
           summary: "${{ github.event.issue.title }}"
           description: "${{ steps.md2jira.outputs.output-text }}"
-          fields: ${{ steps.issue-parser.outputs.issueparser_parentKey != '' && format('{"parent": {"key": "{0}"}}', steps.issue-parser.outputs.issueparser_parentKey) || '{}' }}
-
+          fields: >
+            ${{ steps.issue-parser.outputs.issueparser_parentKey != '' && '{"parent": {"key": "' }}${{ steps.issue-parser.outputs.issueparser_parentKey }}${{ steps.issue-parser.outputs.issueparser_parentKey != '' && '"}}' || '{}' }}
 
       - name: Log created issue
         run: |
