@@ -1,0 +1,33 @@
+name: Sync GitHub Issues to Jira
+
+on:
+  issues:
+    types: [opened, edited, closed, reopened]  # 이슈가 생성, 수정, 닫힘, 다시 열릴 때 동기화
+
+jobs:
+  sync-jira-issue:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Create or Update Jira Issue
+        uses: atlassian/gajira-create@v3
+        with:
+          project: "ETR"  # Jira 프로젝트 키 (예: DEEPFAKE)
+          issuetype: "Task"  # Jira에서 생성할 이슈 유형 (예: Task, Bug 등)
+          summary: "${{ github.event.issue.title }}"  # GitHub 이슈 제목을 Jira 이슈 제목으로 사용
+          description: "${{ github.event.issue.body }}"  # GitHub 이슈 내용을 Jira 이슈 내용으로 사용
+        env:
+          JIRA_BASE_URL: ${{ secrets.JIRA_URL }}
+          JIRA_USER_EMAIL: ${{ secrets.JIRA_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+
+      - name: Transition Jira Issue on Close
+        if: github.event.action == 'closed'
+        uses: atlassian/gajira-transition@v3
+        with:
+          issue: "${{ github.event.issue.number }}"  # GitHub 이슈 번호를 Jira 이슈 키로 변환 필요
+          transition: "Done"  # Jira에서 이슈 상태를 'Done'으로 변경
+        env:
+          JIRA_BASE_URL: ${{ secrets.JIRA_URL }}
+          JIRA_USER_EMAIL: ${{ secrets.JIRA_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
