@@ -50,7 +50,7 @@ jobs:
           email: ${{ secrets.JIRA_USER_EMAIL }}
           apiToken: ${{ secrets.JIRA_API_TOKEN }}
           project: "ETR"
-          issuetype: "작업"  # ✅ 한글로 변경 (Task → 작업)
+          issuetype: "10001" # 🔥 한글 "작업" 대신 ID 사용 (JIRA API에서 조회한 값)
           summary: "[GitHub] ${{ github.event.issue.title }}"
           description: "${{ steps.md2jira.outputs.output-text }}"
 
