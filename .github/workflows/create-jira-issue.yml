@@ -2,20 +2,51 @@ name: Create Jira Issue
 
 on:
   issues:
-    types: [opened]
+    types: [opened]  # GitHub Issue가 생성될 때 실행
 
 jobs:
-  create_jira_issue:
+  create-jira-issue:
     runs-on: ubuntu-latest
+
     steps:
+      - name: Login to Jira
+        uses: atlassian/gajira-login@v3
+        env:
+          JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+          JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
+
+      - name: Parse Issue Data
+        uses: stefanbuck/github-issue-parser@v3
+        id: issue-parser
+        with:
+          template-path: .github/ISSUE_TEMPLATE/issue-form.yml
+
+      - name: Convert Markdown to Jira Syntax
+        uses: peter-evans/jira2md@v1
+        id: md2jira
+        with:
+          input-text: |
+            **GitHub Issue**: [#${{ github.event.issue.number }}](${{ github.event.issue.html_url }})
+
+            **설명**:
+            ${{ github.event.issue.body }}
+          mode: md2jira
+
       - name: Create Jira Issue
+        id: create
         uses: atlassian/gajira-create@v3
         with:
-          project: "ETR"  # Jira 프로젝트 키
+          project: "ETR"  # 너희 프로젝트의 Jira 키를 입력해야 함
           issuetype: "Task"
-          summary: "${{ github.event.issue.title }}"
-          description: "${{ github.event.issue.body }}"
-        env:
-          JIRA_BASE_URL: "https://yourcompany.atlassian.net"
-          JIRA_USER_EMAIL: "${{ secrets.JIRA_EMAIL }}"
-          JIRA_API_TOKEN: "${{ secrets.JIRA_API_TOKEN }}"
+          summary: "[GitHub] ${{ github.event.issue.title }}"
+          description: "${{ steps.md2jira.outputs.output-text }}"
+          fields: |
+            {
+              "parent": {
+                "key": "${{ steps.issue-parser.outputs.issueparser_parentKey }}"
+              }
+            }
+
+      - name: Log Created Issue
+        run: echo "Jira Issue created: ${{ steps.create.outputs.issue }}"
