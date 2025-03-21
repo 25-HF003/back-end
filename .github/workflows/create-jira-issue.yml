@@ -51,7 +51,7 @@ jobs:
           JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
         with:
           project: "ETR"  # Jira 프로젝트 키 수정 필요
-          issuetype: "Task"
+          issuetype: "작업"
           summary: "[GitHub] ${{ github.event.issue.title }}"
           description: "${{ steps.md2jira.outputs.output-text }}"
 
