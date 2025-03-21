@@ -46,18 +46,15 @@ jobs:
         uses: atlassian/gajira-create@v3
         with:
           project: ETR
-          issuetype: Task
+          issuetype: 10001
           summary: "${{ github.event.issue.title }}"
           description: "${{ steps.md2jira.outputs.output-text }}"
-          fields: |
-            {
-              "parent": {
-                "key": "${{ steps.issue-parser.outputs.issueparser_parentKey }}"
-              }
-            }
+          fields: ${{ steps.issue-parser.outputs.issueparser_parentKey != '' && format('{"parent": {"key": "{0}"}}', steps.issue-parser.outputs.issueparser_parentKey) || '{}' }}
+
 
       - name: Log created issue
-        run: echo "Jira Issue ${{ steps.issue-parser.outputs.parentKey }}/${{ steps.create.outputs.issue }} was created"
+        run: |
+          echo "Jira Issue ${{ steps.issue-parser.outputs.parentKey || 'NoParent' }}/${{ steps.create.outputs.issue }} was created"
 
       - name: Checkout develop code
         uses: actions/checkout@v4
