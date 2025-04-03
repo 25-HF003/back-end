@@ -29,6 +29,9 @@ public class User {
     @Column(nullable=false, length = 255)
     private String password;
 
+    @Column(columnDefinition = "TEXT")
+    private String signature;
+
     @Column(nullable=false, unique = true, length = 50)
     private String nickname;
 

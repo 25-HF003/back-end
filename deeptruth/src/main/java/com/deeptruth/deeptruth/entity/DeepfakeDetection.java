@@ -11,11 +11,11 @@ import java.time.LocalDateTime;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "detection")
-public class Detection {
+@Table(name = "deepfake_detection")
+public class DeepfakeDetection {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long detectionId;
+    private Long DeepfakeDetectionId;
 
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
@@ -25,7 +25,7 @@ public class Detection {
     private String filePath;
 
     @Column
-    private Boolean result;
+    private Float deepfakeResult;
 
     @Column
     private Float riskScore;
