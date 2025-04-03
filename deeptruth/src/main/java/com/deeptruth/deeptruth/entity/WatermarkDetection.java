@@ -11,33 +11,30 @@ import java.time.LocalDateTime;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "deepfake_detection")
-public class DeepfakeDetection {
+@Table(name = "watermarkDetection")
+public class WatermarkDetection {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long deepfakeDetectionId;
+    private Long watermarkDetectionId;
 
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     @Column(nullable=false, length = 255)
-    private String filePath;
+    private String originalFilePath;
+
+    @Column(nullable=false, length = 255)
+    private String resultFilePath;
 
     @Column
-    private Float deepfakeResult;
-
-    @Column
-    private Float riskScore;
-
-    @Column(columnDefinition = "JSON")
-    private String detectedPart;
+    private Float watermarkResult;
 
     @Column(nullable=false, updatable = false)
-    private LocalDateTime createdAt;
+    private LocalDateTime watermarkDetectedAt;
 
     @PrePersist
     protected void onCreate() {
-        this.createdAt = LocalDateTime.now();
+        this.watermarkDetectedAt = LocalDateTime.now();
     }
 }
