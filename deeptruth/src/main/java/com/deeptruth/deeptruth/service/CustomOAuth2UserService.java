@@ -1,6 +1,7 @@
 package com.deeptruth.deeptruth.service;
 
 import com.deeptruth.deeptruth.base.OAuth.GoogleUserDetails;
+import com.deeptruth.deeptruth.base.OAuth.NaverUserDetails;
 import com.deeptruth.deeptruth.base.OAuth.OAuth2UserInfo;
 import com.deeptruth.deeptruth.entity.User;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +34,10 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         if(provider.equals("google")){
             log.info("구글 로그인");
             oAuth2UserInfo = new GoogleUserDetails(attributes);
+        }
+        else if(provider.equals("naver")){
+            log.info("네이버 로그인");
+            oAuth2UserInfo = new NaverUserDetails(attributes);
         }
 
         User user = userService.findOrCreateSocialUser(oAuth2UserInfo, provider);

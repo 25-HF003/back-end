@@ -1,0 +1,29 @@
+package com.deeptruth.deeptruth.base.OAuth;
+
+import lombok.AllArgsConstructor;
+
+import java.util.Map;
+
+@AllArgsConstructor
+public class NaverUserDetails implements OAuth2UserInfo{
+    private Map<String, Object> attributes;
+
+    @Override
+    public String getEmail() {
+        return (String) ((Map) attributes.get("response")).get("email");
+    }
+
+    @Override
+    public String getName() {
+        return (String) ((Map) attributes.get("response")).get("name");
+    }
+
+    public String getProvider(){
+        return "naver";
+    }
+
+    public String getProviderId() {
+        return (String) ((Map) attributes.get("response")).get("id");
+    }
+
+}
