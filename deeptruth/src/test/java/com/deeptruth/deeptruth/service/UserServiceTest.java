@@ -31,10 +31,11 @@ public class UserServiceTest {
                 .thenReturn(Optional.of(User.builder().email("hong@example.com").build()));
 
         // when
-        //User result = userService.findOrCreateSocialUser(userInfo, "google");
-        User result = userService.findOrCreateSocialUser(userInfo, "naver");
+        // User result = userService.findOrCreateSocialUser(userInfo, "google");
+        // User result = userService.findOrCreateSocialUser(userInfo, "naver");
+        User result = userService.findOrCreateSocialUser(userInfo, "kakao");
 
-        
+
         // then
         assertThat(result.getEmail()).isEqualTo("hong@example.com");
         verify(userRepository, never()).save(any());
@@ -58,7 +59,8 @@ public class UserServiceTest {
 
         // when
         // User result = userService.findOrCreateSocialUser(userInfo, "google");
-        User result = userService.findOrCreateSocialUser(userInfo, "naver");
+        // User result = userService.findOrCreateSocialUser(userInfo, "naver");
+        User result = userService.findOrCreateSocialUser(userInfo, "kakao");
 
 
         // then

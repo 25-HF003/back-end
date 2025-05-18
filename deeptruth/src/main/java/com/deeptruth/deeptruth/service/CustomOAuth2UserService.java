@@ -1,6 +1,7 @@
 package com.deeptruth.deeptruth.service;
 
 import com.deeptruth.deeptruth.base.OAuth.GoogleUserDetails;
+import com.deeptruth.deeptruth.base.OAuth.KakaoUserDetails;
 import com.deeptruth.deeptruth.base.OAuth.NaverUserDetails;
 import com.deeptruth.deeptruth.base.OAuth.OAuth2UserInfo;
 import com.deeptruth.deeptruth.entity.User;
@@ -38,13 +39,19 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         else if(provider.equals("naver")){
             log.info("네이버 로그인");
             oAuth2UserInfo = new NaverUserDetails(attributes);
+        } else if (provider.equals("kakao")) {
+            log.info("카카오 로그인");
+            oAuth2UserInfo = new KakaoUserDetails(oAuth2User.getAttributes());
         }
 
         User user = userService.findOrCreateSocialUser(oAuth2UserInfo, provider);
 
+        Map<String, Object> enrichedAttributes = new java.util.HashMap<>(attributes);
+        enrichedAttributes.put("email", oAuth2UserInfo.getEmail());
+
         return new DefaultOAuth2User(
                 Collections.singleton(new SimpleGrantedAuthority(user.getRole().name())),
-                attributes,
+                enrichedAttributes,
                 "email"
         );
 
