@@ -18,10 +18,12 @@ public class NaverUserDetails implements OAuth2UserInfo{
         return (String) ((Map) attributes.get("response")).get("name");
     }
 
+    @Override
     public String getProvider(){
         return "naver";
     }
 
+    @Override
     public String getProviderId() {
         return (String) ((Map) attributes.get("response")).get("id");
     }

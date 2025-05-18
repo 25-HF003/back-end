@@ -31,9 +31,9 @@ public class UserServiceTest {
                 .thenReturn(Optional.of(User.builder().email("hong@example.com").build()));
 
         // when
-        // User result = userService.findOrCreateSocialUser(userInfo, "google");
+        User result = userService.findOrCreateSocialUser(userInfo, "google");
         // User result = userService.findOrCreateSocialUser(userInfo, "naver");
-        User result = userService.findOrCreateSocialUser(userInfo, "kakao");
+        // User result = userService.findOrCreateSocialUser(userInfo, "kakao");
 
 
         // then
@@ -58,9 +58,9 @@ public class UserServiceTest {
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
         // when
-        // User result = userService.findOrCreateSocialUser(userInfo, "google");
+        User result = userService.findOrCreateSocialUser(userInfo, "google");
         // User result = userService.findOrCreateSocialUser(userInfo, "naver");
-        User result = userService.findOrCreateSocialUser(userInfo, "kakao");
+        // User result = userService.findOrCreateSocialUser(userInfo, "kakao");
 
 
         // then
