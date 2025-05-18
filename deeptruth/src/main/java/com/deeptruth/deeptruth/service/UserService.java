@@ -16,32 +16,29 @@ public class UserService {
     private final UserRepository userRepository;
 
     public User findOrCreateSocialUser(OAuth2UserInfo oAuth2UserInfo, String provider){
-//        String email = oAuth2UserInfo.getEmail();
-//        return userRepository.findByEmail(email)
-//                .orElseGet(()-> userRepository.save(User.builder()
-//                        .name(oAuth2UserInfo.getName())
-//                        .email(email)
-//                        .loginId(provider+"_"+ UUID.randomUUID())
-//                        .nickname(oAuth2UserInfo.getName())
-//                        .password("NO_PASSWORD")
-//                        .role(Role.USER)
-//                        .socialLoginType(SocialLoginType.valueOf(provider.toUpperCase()))
-//                        .build()));
+
         return userRepository.findByEmail(oAuth2UserInfo.getEmail())
-                .orElseGet(() -> {
-                    User newUser = User.builder()
+                .orElseGet(() ->
+                    userRepository.save(User.builder()
                             .email(oAuth2UserInfo.getEmail())
                             .name(oAuth2UserInfo.getName())
                             .loginId(provider + "_" + UUID.randomUUID())
-                            .nickname(oAuth2UserInfo.getName())
+                            .nickname(generateUniqueNickname(oAuth2UserInfo.getName()))
                             .password("NO_PASSWORD")
                             .role(Role.USER)
                             .socialLoginType(SocialLoginType.valueOf(provider.toUpperCase()))
-                            .build();
-
-                    return userRepository.save(newUser); // ✅ 이 줄이 있어야 테스트 통과
-                });
+                            .build()
+                ));
     }
 
 
+    private String generateUniqueNickname(String baseName){
+        String nickname = baseName;
+        int count=1;
+        while(userRepository.existsByNickname(nickname)){
+            nickname = baseName + "_" + count;
+            count++;
+        }
+        return nickname;
+    }
 }
