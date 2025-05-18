@@ -1,6 +1,8 @@
 package com.deeptruth.deeptruth.service;
 
+import com.deeptruth.deeptruth.base.OAuth.OAuth2UserInfo;
 import com.deeptruth.deeptruth.entity.User;
+import com.deeptruth.deeptruth.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -29,7 +31,7 @@ public class UserServiceTest {
                 .thenReturn(Optional.of(User.builder().email("hong@example.com").build()));
 
         // when
-        User result = userService.findOrCreateUser(userInfo, "google");
+        User result = userService.findOrCreateSocialUser(userInfo, "google");
 
         // then
         assertThat(result.getEmail()).isEqualTo("hong@example.com");
@@ -48,12 +50,17 @@ public class UserServiceTest {
         when(userRepository.findByEmail("newuser@example.com"))
                 .thenReturn(Optional.empty());
 
+        // save()가 저장한 User를 그대로 반환해야 result가 null이 아님
+        when(userRepository.save(any(User.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
         // when
-        User result = userService.findOrCreateUser(userInfo, "google");
+        User result = userService.findOrCreateSocialUser(userInfo, "google");
 
         // then
         assertThat(result.getEmail()).isEqualTo("newuser@example.com");
         verify(userRepository).save(any(User.class));
+
     }
 
 }
