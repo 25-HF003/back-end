@@ -17,6 +17,10 @@ public class WatermarkDetection {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long watermarkDetectionId;
 
+    @OneToOne
+    @JoinColumn(name = "watermark_id", unique = true, nullable = false)
+    private Watermark watermark;
+
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
