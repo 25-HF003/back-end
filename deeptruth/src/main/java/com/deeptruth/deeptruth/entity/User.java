@@ -1,6 +1,7 @@
 package com.deeptruth.deeptruth.entity;
 
 import com.deeptruth.deeptruth.base.Enum.Level;
+import com.deeptruth.deeptruth.base.Enum.Role;
 import com.deeptruth.deeptruth.base.Enum.SocialLoginType;
 import jakarta.persistence.*;
 import lombok.*;
@@ -49,6 +50,9 @@ public class User {
     @Enumerated(EnumType.STRING)
     @Builder.Default
     private SocialLoginType socialLoginType = SocialLoginType.NONE;
+
+    @Enumerated(EnumType.STRING)
+    private Role role;
 
     @Column(nullable=false, updatable = false)
     private LocalDate createdAt;
