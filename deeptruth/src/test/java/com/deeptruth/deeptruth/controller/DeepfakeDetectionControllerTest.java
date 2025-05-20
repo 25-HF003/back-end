@@ -14,6 +14,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -53,10 +54,13 @@ public class DeepfakeDetectionControllerTest {
     @DisplayName("딥페이크 탐지 결과를 삭제한다")
     @WithMockUser(username = "testuser@example.com", roles = {"USER"})
     void deleteDeepfakeDetection_success() throws Exception {
-        mockMvc.perform(delete("/deepfake/1"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value(200))
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.message").value("딥페이크 탐지 결과 삭제 성공"));
+        Long id = 1L;
+
+        mockMvc.perform(delete("/deepfake/{id}", id)
+                        .with(csrf()))
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$.status").value(200))
+                        .andExpect(jsonPath("$.success").value(true))
+                        .andExpect(jsonPath("$.message").value("딥페이크 탐지 결과 삭제 성공"));
     }
 }
