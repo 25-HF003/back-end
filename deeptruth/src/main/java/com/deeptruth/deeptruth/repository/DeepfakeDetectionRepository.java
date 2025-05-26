@@ -6,9 +6,12 @@ import com.deeptruth.deeptruth.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface DeepfakeDetectionRepository extends JpaRepository<DeepfakeDetection, Long> {
-    List<DeepfakeDetectionDTO> findAllAsDTO();
-    List<DeepfakeDetection> findByUser(User user);
-    void deleteById(Long id);
+    void deleteByDeepfakeDetectionId(Long id);
+    Optional<DeepfakeDetection> findByDeepfakeDetectionIdAndUser(Long id, User user);
+    void deleteByDeepfakeDetectionIdAndUser(Long id, User user);
+    List<DeepfakeDetection> findAllByUser(User user);
+
 }

@@ -17,17 +17,23 @@ public class DeepfakeDetectionController {
     private final DeepfakeDetectionService deepfakeDetectionService;
 
     @GetMapping
-    public ResponseEntity<ResponseDTO> getAllDetections(){
-        List<DeepfakeDetectionDTO> result = deepfakeDetectionService.getAllResult();
+    public ResponseEntity<ResponseDTO> getAllDetections(@RequestParam Long userId){
+        List<DeepfakeDetectionDTO> result = deepfakeDetectionService.getAllResult(userId);
         return ResponseEntity.ok(
                 ResponseDTO.success(200, "딥페이크 탐지 결과 전체 조회 성공", result)
         );
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getDetection(@PathVariable Long id, @RequestParam Long userId) {
+        DeepfakeDetectionDTO result = deepfakeDetectionService.getSingleResult(userId, id);
+        return ResponseEntity.ok(ResponseDTO.success(200, "딥페이크 탐지 결과 조회 성공", result));
+    }
+
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<ResponseDTO> deleteDetection(@PathVariable Long id){
-        deepfakeDetectionService.deleteResult(id);
+    public ResponseEntity<ResponseDTO> deleteDetection(@PathVariable Long id, @RequestParam Long userId){
+        deepfakeDetectionService.deleteResult(userId, id);
         return ResponseEntity.ok(
                 ResponseDTO.success(200, "딥페이크 탐지 결과 삭제 성공", null)
         );

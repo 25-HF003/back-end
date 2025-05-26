@@ -104,7 +104,7 @@ class DeepfakeDetectionServiceTest {
                 .build();
 
         Mockito.when(userRepository.findById(userId)).thenReturn(Optional.of(mockUser));
-        Mockito.when(deepfakeDetectionRepository.findByIdAndUser(detectionId, mockUser)).thenReturn(Optional.of(mockDetection));
+        Mockito.when(deepfakeDetectionRepository.findByDeepfakeDetectionIdAndUser(detectionId, mockUser)).thenReturn(Optional.of(mockDetection));
 
         DeepfakeDetectionDTO result = deepfakeDetectionService.getSingleResult(userId, detectionId);
 
@@ -116,9 +116,9 @@ class DeepfakeDetectionServiceTest {
     @DisplayName("탐지 결과를 삭제한다")
     void deleteResult() {
         when(userRepository.findById(1L)).thenReturn(Optional.of(mockUser));
-        when(deepfakeDetectionRepository.findByIdAndUser(1L, mockUser)).thenReturn(Optional.of(detection1));
+        when(deepfakeDetectionRepository.findByDeepfakeDetectionIdAndUser(1L, mockUser)).thenReturn(Optional.of(detection1));
 
         assertDoesNotThrow(() -> deepfakeDetectionService.deleteResult(1L, 1L));
-        verify(deepfakeDetectionRepository, times(1)).deleteByIdAndUser(1L, mockUser);
+        verify(deepfakeDetectionRepository, times(1)).deleteByDeepfakeDetectionIdAndUser(1L, mockUser);
     }
 }

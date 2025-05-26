@@ -4,6 +4,7 @@ import com.deeptruth.deeptruth.base.dto.deepfake.DeepfakeDetectionDTO;
 import com.deeptruth.deeptruth.entity.DeepfakeDetection;
 import com.deeptruth.deeptruth.entity.User;
 import com.deeptruth.deeptruth.repository.DeepfakeDetectionRepository;
+import com.deeptruth.deeptruth.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -16,22 +17,27 @@ public class DeepfakeDetectionService {
 
     private final DeepfakeDetectionRepository deepfakeDetectionRepository;
 
-    public List<DeepfakeDetectionDTO> getAllResult(){
-        List<DeepfakeDetection> entities = deepfakeDetectionRepository.findAll();
+    private final UserRepository userRepository;
 
-        return entities.stream()
-                .map(entity -> DeepfakeDetectionDTO.builder()
-                        .id(entity.getDeepfakeDetectionId())
-                        .filePath(entity.getFilePath())
-                        .deepfakeResult(entity.getDeepfakeResult())
-                        .riskScore(entity.getRiskScore())
-                        .detectedPart(entity.getDetectedPart())
-                        .createdAt(entity.getCreatedAt())
-                        .build())
+    public List<DeepfakeDetectionDTO> getAllResult(Long userId){
+        User user = userRepository.findById(userId).orElseThrow();
+        List<DeepfakeDetection> results = deepfakeDetectionRepository.findAllByUser(user);
+
+        return results.stream()
+                .map(DeepfakeDetectionDTO::fromEntity)
                 .collect(Collectors.toList());
     }
 
-    public void deleteResult(Long id){
-        deepfakeDetectionRepository.deleteById(id);
+    public DeepfakeDetectionDTO getSingleResult(Long userId, Long id) {
+        User user = userRepository.findById(userId).orElseThrow();
+        DeepfakeDetection detection = deepfakeDetectionRepository.findByDeepfakeDetectionIdAndUser(id, user).orElseThrow();
+
+        return DeepfakeDetectionDTO.fromEntity(detection);
+    }
+
+    public void deleteResult(Long userId, Long id){
+        User user = userRepository.findById(userId).orElseThrow();
+
+        deepfakeDetectionRepository.deleteByDeepfakeDetectionIdAndUser(id, user);
     }
 }
