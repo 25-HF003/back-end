@@ -15,6 +15,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -30,6 +31,7 @@ public class DeepfakeDetectionControllerTest {
     @DisplayName("딥페이크 탐지 결과를 조회한다")
     @WithMockUser(username = "testuser@example.com", roles = {"USER"})
     void getDeepfakeDetections_success() throws Exception {
+        Long userId = 1L;
         DeepfakeDetectionDTO dto = DeepfakeDetectionDTO.builder()
                 .id(1L)
                 .filePath("test/path.mp4")
@@ -42,7 +44,8 @@ public class DeepfakeDetectionControllerTest {
         Mockito.when(deepfakeDetectionService.getAllResult())
                 .thenReturn(List.of(dto));
 
-        mockMvc.perform(get("/deepfake"))
+        mockMvc.perform(get("/deepfake")
+                        .param("userId", String.valueOf(userId)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value(200))
                 .andExpect(jsonPath("$.success").value(true))
@@ -51,12 +54,43 @@ public class DeepfakeDetectionControllerTest {
     }
 
     @Test
+    @DisplayName("특정 딥페이크 탐지 결과를 조회한다")
+    @WithMockUser(username = "testuser@example.com", roles = {"USER"})
+    void getSingleDeepfakeDetection_success() throws Exception {
+        Long id = 1L;
+        Long userId = 1L;
+
+        DeepfakeDetectionDTO dto = DeepfakeDetectionDTO.builder()
+                .id(id)
+                .filePath("test/path.mp4")
+                .deepfakeResult(0.85f)
+                .riskScore(0.75f)
+                .detectedPart("{\"face\": true}")
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        Mockito.when(deepfakeDetectionService.getSingleResult(id, userId))
+                .thenReturn(dto);
+
+        mockMvc.perform(get("/deepfake/{id}", id)
+                        .param("userId", String.valueOf(userId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value(200))
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("딥페이크 탐지 결과 조회 성공"))
+                .andExpect(jsonPath("$.data.filePath").value("test/path.mp4"));
+    }
+
+
+    @Test
     @DisplayName("딥페이크 탐지 결과를 삭제한다")
     @WithMockUser(username = "testuser@example.com", roles = {"USER"})
     void deleteDeepfakeDetection_success() throws Exception {
         Long id = 1L;
+        Long userId = 1L;
 
         mockMvc.perform(delete("/deepfake/{id}", id)
+                        .param("userId", String.valueOf(userId))
                         .with(csrf()))
                         .andExpect(status().isOk())
                         .andExpect(jsonPath("$.status").value(200))
