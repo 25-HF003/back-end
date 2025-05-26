@@ -83,7 +83,7 @@ class DeepfakeDetectionServiceTest {
         assertEquals("path2.mp4", result.get(1).getFilePath());
 
         // repository 호출 여부 검증 (옵션)
-        verify(deepfakeDetectionRepository, times(1)).findAll();
+        verify(deepfakeDetectionRepository, times(1)).findAllByUser(mockUser);
     }
 
     @Test
@@ -119,6 +119,6 @@ class DeepfakeDetectionServiceTest {
         when(deepfakeDetectionRepository.findByIdAndUser(1L, mockUser)).thenReturn(Optional.of(detection1));
 
         assertDoesNotThrow(() -> deepfakeDetectionService.deleteResult(1L, 1L));
-        verify(deepfakeDetectionRepository, times(1)).delete(detection1);
+        verify(deepfakeDetectionRepository, times(1)).deleteByIdAndUser(1L, mockUser);
     }
 }
