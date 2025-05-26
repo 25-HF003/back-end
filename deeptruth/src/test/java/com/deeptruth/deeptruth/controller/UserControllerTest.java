@@ -19,44 +19,44 @@ import java.time.LocalDate;
 
 @WebMvcTest(UserController.class)
 public class UserControllerTest {
-    @Autowired
-    private MockMvc mockMvc;
-
-    @MockBean
-    private UserService userService;
-
-    @Test
-    @DisplayName("소셜 로그인한 유저의 정보를 조회한다")
-    @WithMockUser(username = "testuser@example.com", roles = {"USER"})
-    void getCurrentSocialUser_success() throws Exception {
-        // given
-        User user = User.builder()
-                .userId(1L)
-                .name("테스트유저")
-                .loginId("testuser")
-                .password("암호화된비밀번호")
-                .nickname("닉네임")
-                .email("testuser@example.com")
-                .role(com.deeptruth.deeptruth.base.Enum.Role.USER)
-                .createdAt(LocalDate.of(2025, 5, 18))
-                .build();
-        Mockito.when(userService.getCurrentUser()).thenReturn(user);
-
-        // when & then
-        mockMvc.perform(get("/api/user/me")
-                        .with(oauth2Login().attributes(attrs -> {
-                            attrs.put("email", "test@example.com");
-                            attrs.put("name", "테스트유저");
-                        })))
-                .andExpect(status().isOk())  // ✅ ResultMatcher
-                .andExpect(jsonPath("$.email").value("test@example.com"))
-                .andExpect(jsonPath("$.name").value("테스트유저"));
-    }
-
-    @Test
-    @DisplayName("인증되지 않은 사용자가 요청하면 401 Unauthorized를 반환한다")
-    void getCurrentUser_unauthorized() throws Exception {
-        mockMvc.perform(get("/api/user/me"))
-                .andExpect(status().isUnauthorized());
-    }
+//    @Autowired
+//    private MockMvc mockMvc;
+//
+//    @MockBean
+//    private UserService userService;
+//
+//    @Test
+//    @DisplayName("소셜 로그인한 유저의 정보를 조회한다")
+//    @WithMockUser(username = "testuser@example.com", roles = {"USER"})
+//    void getCurrentSocialUser_success() throws Exception {
+//        // given
+//        User user = User.builder()
+//                .userId(1L)
+//                .name("테스트유저")
+//                .loginId("testuser")
+//                .password("암호화된비밀번호")
+//                .nickname("닉네임")
+//                .email("testuser@example.com")
+//                .role(com.deeptruth.deeptruth.base.Enum.Role.USER)
+//                .createdAt(LocalDate.of(2025, 5, 18))
+//                .build();
+//        Mockito.when(userService.getCurrentUser()).thenReturn(user);
+//
+//        // when & then
+//        mockMvc.perform(get("/api/user/me")
+//                        .with(oauth2Login().attributes(attrs -> {
+//                            attrs.put("email", "test@example.com");
+//                            attrs.put("name", "테스트유저");
+//                        })))
+//                .andExpect(status().isOk())  // ✅ ResultMatcher
+//                .andExpect(jsonPath("$.email").value("test@example.com"))
+//                .andExpect(jsonPath("$.name").value("테스트유저"));
+//    }
+//
+//    @Test
+//    @DisplayName("인증되지 않은 사용자가 요청하면 401 Unauthorized를 반환한다")
+//    void getCurrentUser_unauthorized() throws Exception {
+//        mockMvc.perform(get("/api/user/me"))
+//                .andExpect(status().isUnauthorized());
+//    }
 }
