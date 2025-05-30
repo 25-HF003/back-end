@@ -12,13 +12,17 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.web.multipart.MultipartFile;
+import static org.mockito.BDDMockito.then;
 
+
+import java.io.IOException;
 import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
 class DeepfakeDetectionServiceTest {
@@ -31,6 +35,9 @@ class DeepfakeDetectionServiceTest {
 
     @Mock
     private DeepfakeDetectionRepository deepfakeDetectionRepository;
+
+    @Mock
+    private AmazonS3Service amazonS3Service;
 
     private User mockUser;
     private DeepfakeDetection detection1;
@@ -66,24 +73,25 @@ class DeepfakeDetectionServiceTest {
                 .build();
     }
 
-
     @Test
-    @DisplayName("전체 탐지 결과를 반환한다")
-    void getAllResult() {
+    @DisplayName("영상을 업로드한다")
+    void uploadVideo_ShouldReturnS3Url() throws IOException {
         // given
-        when(userRepository.findById(1L)).thenReturn(Optional.of(mockUser));
-        when(deepfakeDetectionRepository.findAllByUser(mockUser)).thenReturn(List.of(detection1, detection2));
+        Long userId = 1L;
+        MultipartFile multipartFile = new MockMultipartFile("file", "video.mp4", "video/mp4", "video content".getBytes());
+        User mockUser = User.builder().userId(userId).name("tester").build();
+
+        given(userRepository.findById(userId)).willReturn(Optional.of(mockUser));
+        given(amazonS3Service.uploadFile(anyString(), any(MultipartFile.class)))
+                .willReturn("https://s3.amazonaws.com/deepfake/video.mp4");
 
         // when
-        List<DeepfakeDetectionDTO> result = deepfakeDetectionService.getAllResult(1L);
+        String result = deepfakeDetectionService.uploadVideo(userId, multipartFile);
 
         // then
-        assertEquals(2, result.size());
-        assertEquals("path1.mp4", result.get(0).getFilePath());
-        assertEquals("path2.mp4", result.get(1).getFilePath());
-
-        // repository 호출 여부 검증 (옵션)
-        verify(deepfakeDetectionRepository, times(1)).findAllByUser(mockUser);
+        assertEquals("https://s3.amazonaws.com/deepfake/video.mp4", result);
+        then(userRepository).should().findById(userId);
+        then(amazonS3Service).should().uploadFile("deepfake", multipartFile);
     }
 
     @Test

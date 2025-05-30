@@ -8,14 +8,17 @@ import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.multipart.MultipartFile;
+import static org.mockito.ArgumentMatchers.any;
 
 import java.time.LocalDateTime;
 import java.util.List;
-
+import static org.mockito.BDDMockito.given;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -26,6 +29,29 @@ public class DeepfakeDetectionControllerTest {
 
     @MockBean
     private DeepfakeDetectionService deepfakeDetectionService;
+
+    @Test
+    @DisplayName("영상을 업로드한다")
+    @WithMockUser(username = "testuser@example.com", roles = {"USER"})
+    void uploadVideo_ShouldReturn200AndResponseDTO() throws Exception {
+        // given
+        Long userId = 1L;
+        MockMultipartFile file = new MockMultipartFile("file", "video.mp4", "video/mp4", "fake video content".getBytes());
+        String expectedUrl = "https://s3.amazonaws.com/deepfake/video.mp4";
+
+        given(deepfakeDetectionService.uploadVideo(eq(userId), any(MultipartFile.class)))
+                .willReturn(expectedUrl);
+
+        // when & then
+        mockMvc.perform(multipart("/deepfake")
+                        .file(file)
+                        .with(csrf())
+                        .param("userId", userId.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value(200))
+                .andExpect(jsonPath("$.message").value("딥페이크 탐지 영상 업로드 성공"))
+                .andExpect(jsonPath("$.data").value(expectedUrl));
+    }
 
     @Test
     @DisplayName("딥페이크 탐지 결과를 조회한다")
