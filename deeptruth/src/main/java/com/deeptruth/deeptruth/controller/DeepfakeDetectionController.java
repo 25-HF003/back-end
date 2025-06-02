@@ -6,6 +6,7 @@ import com.deeptruth.deeptruth.service.DeepfakeDetectionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -15,6 +16,15 @@ import java.util.List;
 public class DeepfakeDetectionController {
 
     private final DeepfakeDetectionService deepfakeDetectionService;
+
+    @PostMapping
+    public ResponseEntity<ResponseDTO> uploadVideo(Long userId, @RequestPart("file")MultipartFile multipartFile){
+        DeepfakeDetectionDTO result = deepfakeDetectionService.uploadVideo(userId, multipartFile);
+
+        return ResponseEntity.ok(
+                ResponseDTO.success(200, "딥페이크 탐지 영상 업로드 성공", result)
+        );
+    }
 
     @GetMapping
     public ResponseEntity<ResponseDTO> getAllDetections(@RequestParam Long userId){
