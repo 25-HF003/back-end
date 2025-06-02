@@ -36,11 +36,19 @@ public class DeepfakeDetectionControllerTest {
     void uploadVideo_ShouldReturn200AndResponseDTO() throws Exception {
         // given
         Long userId = 1L;
+        Float deepfakeResult = 0.7F;
+        Float riskScore = 0.7F;
         MockMultipartFile file = new MockMultipartFile("file", "video.mp4", "video/mp4", "fake video content".getBytes());
-        String expectedUrl = "https://s3.amazonaws.com/deepfake/video.mp4";
+
+        DeepfakeDetectionDTO mockDto = DeepfakeDetectionDTO.builder()
+                .filePath("https://s3.amazonaws.com/deepfake/video.mp4")
+                .deepfakeResult(deepfakeResult)
+                .riskScore(riskScore)
+                .build();
 
         given(deepfakeDetectionService.uploadVideo(eq(userId), any(MultipartFile.class)))
-                .willReturn(expectedUrl);
+                .willReturn(mockDto);
+
 
         // when & then
         mockMvc.perform(multipart("/deepfake")
@@ -50,7 +58,9 @@ public class DeepfakeDetectionControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value(200))
                 .andExpect(jsonPath("$.message").value("딥페이크 탐지 영상 업로드 성공"))
-                .andExpect(jsonPath("$.data").value(expectedUrl));
+                .andExpect(jsonPath("$.data.filePath").value("https://s3.amazonaws.com/deepfake/video.mp4"))
+                .andExpect(jsonPath("$.data.deepfakeResult").value(deepfakeResult))
+                .andExpect(jsonPath("$.data.riskScore").value(riskScore));
     }
 
     @Test

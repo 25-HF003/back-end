@@ -74,24 +74,28 @@ class DeepfakeDetectionServiceTest {
     }
 
     @Test
-    @DisplayName("영상을 업로드한다")
+    @DisplayName("영상을 업로드하고 deepfake 반환값을 받는다. ")
     void uploadVideo_ShouldReturnS3Url() throws IOException {
         // given
         Long userId = 1L;
         MultipartFile multipartFile = new MockMultipartFile("file", "video.mp4", "video/mp4", "video content".getBytes());
-        User mockUser = User.builder().userId(userId).name("tester").build();
+        String uploadedUrl = "https://s3.amazonaws.com/deepfake/video.mp4";
 
         given(userRepository.findById(userId)).willReturn(Optional.of(mockUser));
-        given(amazonS3Service.uploadFile(anyString(), any(MultipartFile.class)))
-                .willReturn("https://s3.amazonaws.com/deepfake/video.mp4");
+        given(amazonS3Service.uploadFile(anyString(), any(MultipartFile.class))).willReturn(uploadedUrl);
 
         // when
-        String result = deepfakeDetectionService.uploadVideo(userId, multipartFile);
+        DeepfakeDetectionDTO result = deepfakeDetectionService.uploadVideo(userId, multipartFile);
 
         // then
-        assertEquals("https://s3.amazonaws.com/deepfake/video.mp4", result);
+        assertNotNull(result);
+        assertEquals(uploadedUrl, result.getFilePath());
+        assertEquals(0.7F, result.getDeepfakeResult()); // 하드코딩 값 기준
+        assertEquals(0.7F, result.getRiskScore());
+
         then(userRepository).should().findById(userId);
         then(amazonS3Service).should().uploadFile("deepfake", multipartFile);
+        verify(deepfakeDetectionRepository, times(1)).save(any(DeepfakeDetection.class));
     }
 
     @Test
