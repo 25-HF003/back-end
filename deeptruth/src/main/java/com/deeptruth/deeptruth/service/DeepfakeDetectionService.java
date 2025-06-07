@@ -1,5 +1,6 @@
 package com.deeptruth.deeptruth.service;
 
+import com.deeptruth.deeptruth.base.Enum.DeepfakeResult;
 import com.deeptruth.deeptruth.base.dto.deepfake.DeepfakeDetectionDTO;
 import com.deeptruth.deeptruth.entity.DeepfakeDetection;
 import com.deeptruth.deeptruth.entity.User;
@@ -30,14 +31,14 @@ public class DeepfakeDetectionService {
         User user = userRepository.findById(userId).orElseThrow();
         String filePath = amazonS3Service.uploadFile("deepfake", multipartFile);
 
-        Float deepfakeResult = 0.7F;
+        DeepfakeResult deepfakeResult = DeepfakeResult.FAKE;
         Float riskScore = 0.7F;
 
 
         DeepfakeDetection detection = DeepfakeDetection.builder()
                 .user(user)
                 .filePath(filePath)
-                .deepfakeResult(deepfakeResult)
+                .result(deepfakeResult)
                 .riskScore(riskScore)
                 .build();
 
