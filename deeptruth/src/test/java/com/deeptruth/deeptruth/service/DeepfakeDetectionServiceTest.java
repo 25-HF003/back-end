@@ -1,5 +1,6 @@
 package com.deeptruth.deeptruth.service;
 
+import com.deeptruth.deeptruth.base.Enum.DeepfakeResult;
 import com.deeptruth.deeptruth.base.dto.deepfake.DeepfakeDetectionDTO;
 import com.deeptruth.deeptruth.entity.DeepfakeDetection;
 import com.deeptruth.deeptruth.entity.User;
@@ -56,9 +57,8 @@ class DeepfakeDetectionServiceTest {
                 .deepfakeDetectionId(1L)
                 .user(mockUser)
                 .filePath("path1.mp4")
-                .deepfakeResult(0.9f)
+                .result(DeepfakeResult.FAKE)
                 .riskScore(0.8f)
-                .detectedPart("{\"face\": true}")
                 .createdAt(LocalDateTime.now())
                 .build();
 
@@ -66,9 +66,8 @@ class DeepfakeDetectionServiceTest {
                 .deepfakeDetectionId(2L)
                 .user(mockUser)
                 .filePath("path2.mp4")
-                .deepfakeResult(0.3f)
+                .result(DeepfakeResult.REAL)
                 .riskScore(0.2f)
-                .detectedPart("{\"face\": false}")
                 .createdAt(LocalDateTime.now())
                 .build();
     }
@@ -90,7 +89,7 @@ class DeepfakeDetectionServiceTest {
         // then
         assertNotNull(result);
         assertEquals(uploadedUrl, result.getFilePath());
-        assertEquals(0.7F, result.getDeepfakeResult()); // 하드코딩 값 기준
+        assertEquals(DeepfakeResult.FAKE, result.getResult()); // 하드코딩 값 기준
         assertEquals(0.7F, result.getRiskScore());
 
         then(userRepository).should().findById(userId);
@@ -109,9 +108,8 @@ class DeepfakeDetectionServiceTest {
                 .deepfakeDetectionId(detectionId)
                 .user(mockUser)
                 .filePath("test/path.mp4")
-                .deepfakeResult(0.85f)
+                .result(DeepfakeResult.FAKE)
                 .riskScore(0.75f)
-                .detectedPart("{\"face\": true}")
                 .createdAt(LocalDateTime.now())
                 .build();
 
@@ -121,7 +119,7 @@ class DeepfakeDetectionServiceTest {
         DeepfakeDetectionDTO result = deepfakeDetectionService.getSingleResult(userId, detectionId);
 
         assertEquals("test/path.mp4", result.getFilePath());
-        assertEquals(0.85f, result.getDeepfakeResult());
+        assertEquals(DeepfakeResult.FAKE, result.getResult());
     }
 
     @Test

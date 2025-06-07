@@ -1,7 +1,9 @@
 package com.deeptruth.deeptruth.controller;
 
+import com.deeptruth.deeptruth.base.Enum.DeepfakeResult;
 import com.deeptruth.deeptruth.base.dto.deepfake.DeepfakeDetectionDTO;
 import com.deeptruth.deeptruth.service.DeepfakeDetectionService;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -36,13 +38,13 @@ public class DeepfakeDetectionControllerTest {
     void uploadVideo_ShouldReturn200AndResponseDTO() throws Exception {
         // given
         Long userId = 1L;
-        Float deepfakeResult = 0.7F;
+        DeepfakeResult deepfakeResult = DeepfakeResult.FAKE;
         Float riskScore = 0.7F;
         MockMultipartFile file = new MockMultipartFile("file", "video.mp4", "video/mp4", "fake video content".getBytes());
 
         DeepfakeDetectionDTO mockDto = DeepfakeDetectionDTO.builder()
                 .filePath("https://s3.amazonaws.com/deepfake/video.mp4")
-                .deepfakeResult(deepfakeResult)
+                .result(deepfakeResult)
                 .riskScore(riskScore)
                 .build();
 
@@ -59,7 +61,7 @@ public class DeepfakeDetectionControllerTest {
                 .andExpect(jsonPath("$.status").value(200))
                 .andExpect(jsonPath("$.message").value("딥페이크 탐지 영상 업로드 성공"))
                 .andExpect(jsonPath("$.data.filePath").value("https://s3.amazonaws.com/deepfake/video.mp4"))
-                .andExpect(jsonPath("$.data.deepfakeResult").value(deepfakeResult))
+                .andExpect(jsonPath("$.data.result").value(Matchers.containsString("FAKE")))
                 .andExpect(jsonPath("$.data.riskScore").value(riskScore));
     }
 
@@ -71,9 +73,8 @@ public class DeepfakeDetectionControllerTest {
         DeepfakeDetectionDTO dto = DeepfakeDetectionDTO.builder()
                 .id(1L)
                 .filePath("test/path.mp4")
-                .deepfakeResult(0.85f)
+                .result(DeepfakeResult.FAKE)
                 .riskScore(0.75f)
-                .detectedPart("{\"face\": true}")
                 .createdAt(LocalDateTime.now())
                 .build();
 
@@ -99,9 +100,8 @@ public class DeepfakeDetectionControllerTest {
         DeepfakeDetectionDTO dto = DeepfakeDetectionDTO.builder()
                 .id(id)
                 .filePath("test/path.mp4")
-                .deepfakeResult(0.85f)
+                .result(DeepfakeResult.FAKE)
                 .riskScore(0.75f)
-                .detectedPart("{\"face\": true}")
                 .createdAt(LocalDateTime.now())
                 .build();
 

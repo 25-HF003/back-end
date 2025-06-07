@@ -1,5 +1,6 @@
 package com.deeptruth.deeptruth.entity;
 
+import com.deeptruth.deeptruth.base.Enum.DeepfakeResult;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -24,14 +25,12 @@ public class DeepfakeDetection {
     @Column(nullable=false, length = 255)
     private String filePath;
 
-    @Column
-    private Float deepfakeResult;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private DeepfakeResult result;
 
     @Column
     private Float riskScore;
-
-    @Column(columnDefinition = "JSON")
-    private String detectedPart;
 
     @Column(nullable=false, updatable = false)
     private LocalDateTime createdAt;
