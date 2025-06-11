@@ -44,7 +44,6 @@ public class DeepfakeDetectionService {
                 .user(user)
                 .filePath(filePath)
                 .result(deepfakeResult)
-                .riskScore(riskScore)
                 .build();
 
         deepfakeDetectionRepository.save(detection);
@@ -61,7 +60,8 @@ public class DeepfakeDetectionService {
                 .user(user)
                 .filePath(flaskResponseDTO.getImageUrl())
                 .result(flaskResponseDTO.getResult())
-                .riskScore(flaskResponseDTO.getConfidence())
+                .averageConfidence(flaskResponseDTO.getAverageConfidence())
+                .maxConfidence(flaskResponseDTO.getMaxConfidence())
                 .build();
 
         deepfakeDetectionRepository.save(detection);

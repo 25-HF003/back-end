@@ -22,7 +22,7 @@ public class DeepfakeDetection {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(nullable=false, length = 255)
+    @Column(length = 255)
     private String filePath;
 
     @Enumerated(EnumType.STRING)
@@ -30,7 +30,9 @@ public class DeepfakeDetection {
     private DeepfakeResult result;
 
     @Column
-    private Float riskScore;
+    private Float averageConfidence;
+    @Column
+    private Float maxConfidence;
 
     @Column(nullable=false, updatable = false)
     private LocalDateTime createdAt;
