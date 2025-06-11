@@ -13,7 +13,8 @@ public class DeepfakeDetectionDTO {
     private Long id;
     private String filePath;
     private DeepfakeResult result;
-    private Float riskScore;
+    private Float averageConfidence;
+    private Float maxConfidence;
     private LocalDateTime createdAt;
 
     public static DeepfakeDetectionDTO fromEntity(DeepfakeDetection entity) {
@@ -21,7 +22,8 @@ public class DeepfakeDetectionDTO {
                 .id(entity.getDeepfakeDetectionId())
                 .filePath(entity.getFilePath())
                 .result(entity.getResult())
-                .riskScore(entity.getRiskScore())
+                .averageConfidence(entity.getAverageConfidence())
+                .maxConfidence(entity.getMaxConfidence())
                 .createdAt(entity.getCreatedAt())
                 .build();
     }
