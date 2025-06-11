@@ -41,4 +41,8 @@ public class UserService {
         }
         return nickname;
     }
+
+    public boolean existsByUserId(Long userId){
+        return userRepository.existsByUserId(userId);
+    }
 }
