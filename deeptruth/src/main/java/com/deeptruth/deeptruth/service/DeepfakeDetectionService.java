@@ -2,6 +2,7 @@ package com.deeptruth.deeptruth.service;
 
 import com.deeptruth.deeptruth.base.Enum.DeepfakeResult;
 import com.deeptruth.deeptruth.base.dto.deepfake.DeepfakeDetectionDTO;
+import com.deeptruth.deeptruth.base.dto.deepfake.FlaskResponseDTO;
 import com.deeptruth.deeptruth.entity.DeepfakeDetection;
 import com.deeptruth.deeptruth.entity.User;
 import com.deeptruth.deeptruth.repository.DeepfakeDetectionRepository;
@@ -12,8 +13,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -47,6 +52,31 @@ public class DeepfakeDetectionService {
         DeepfakeDetectionDTO dto = DeepfakeDetectionDTO.fromEntity(detection);
 
         return dto;
+    }
+
+    public DeepfakeDetectionDTO createDetection(Long userId, FlaskResponseDTO flaskResponseDTO){
+        User user = userRepository.findById(userId).orElseThrow();
+
+        DeepfakeDetection detection = DeepfakeDetection.builder()
+                .user(user)
+                .filePath(flaskResponseDTO.getImageUrl())
+                .result(flaskResponseDTO.getResult())
+                .riskScore(flaskResponseDTO.getConfidence())
+                .build();
+
+        deepfakeDetectionRepository.save(detection);
+
+        return DeepfakeDetectionDTO.fromEntity(detection);
+    }
+
+    public String uploadBase64ImageToS3(String base64Image, Long userId) {
+        byte[] decodedBytes = Base64.getDecoder().decode(base64Image);
+        InputStream inputStream = new ByteArrayInputStream(decodedBytes);
+
+        String key = "deepfake/" + userId + "/" + UUID.randomUUID() + ".jpg";
+        String imageUrl = amazonS3Service.uploadBase64Image(inputStream, key);
+
+        return imageUrl;
     }
 
     public List<DeepfakeDetectionDTO> getAllResult(Long userId){

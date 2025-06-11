@@ -54,4 +54,22 @@ public class AmazonS3Service {
         return uploadFileUrl;
     }
 
+    public String uploadBase64Image(InputStream inputStream, String key) {
+        try {
+            ObjectMetadata metadata = new ObjectMetadata();
+            metadata.setContentType("image/jpeg");
+            metadata.setContentLength(inputStream.available());
+
+            amazonS3Client.putObject(
+                    new PutObjectRequest(bucketName, key, inputStream, metadata)
+                            .withCannedAcl(CannedAccessControlList.PublicRead)
+            );
+
+            return amazonS3Client.getUrl(bucketName, key).toString();
+        } catch (IOException e) {
+            log.error("이미지 업로드 실패", e);
+            throw new RuntimeException("S3 이미지 업로드 실패", e);
+        }
+    }
+
 }
