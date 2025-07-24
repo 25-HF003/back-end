@@ -1,24 +1,26 @@
 package com.deeptruth.deeptruth.controller;
 
+import com.deeptruth.deeptruth.base.dto.watermark.WatermarkDTO;
+import com.deeptruth.deeptruth.service.WatermarkService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-
-import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.hamcrest.Matchers.*;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(WatermarkController.class)
+@WebMvcTest(controllers = WatermarkController.class)
+@AutoConfigureMockMvc(addFilters = false)
 public class WatermarkControllerTest {
 
     @Autowired
@@ -34,8 +36,8 @@ public class WatermarkControllerTest {
     void getAllWatermarks_ShouldReturnList() throws Exception {
         // given
         Long userId = 1L;
-        WatermarkDTO dto1 = new WatermarkDTO(1L, "original1.jpg", "watermarked1.jpg", "2024-01-01T00:00:00");
-        WatermarkDTO dto2 = new WatermarkDTO(2L, "original2.jpg", "watermarked2.jpg", "2024-01-02T00:00:00");
+        WatermarkDTO dto1 = new WatermarkDTO(1L, "original1.jpg", "watermarked1.jpg", LocalDateTime.parse("2024-01-01T00:00:00"));
+        WatermarkDTO dto2 = new WatermarkDTO(2L, "original2.jpg", "watermarked2.jpg", LocalDateTime.parse("2024-01-02T00:00:00"));
 
         Mockito.when(waterMarkService.getAllResult(userId)).thenReturn(List.of(dto1, dto2));
 
@@ -54,7 +56,7 @@ public class WatermarkControllerTest {
         // given
         Long userId = 1L;
         Long id = 42L;
-        WatermarkDTO dto = new WatermarkDTO(id, "original.jpg", "watermarked.jpg", "2024-01-01T00:00:00");
+        WatermarkDTO dto = new WatermarkDTO(id, "original.jpg", "watermarked.jpg", LocalDateTime.parse("2024-01-01T00:00:00"));
 
         Mockito.when(waterMarkService.getSingleResult(userId, id)).thenReturn(dto);
 

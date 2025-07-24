@@ -1,8 +1,10 @@
 package com.deeptruth.deeptruth.service;
 
+import com.deeptruth.deeptruth.base.dto.watermark.WatermarkDTO;
 import com.deeptruth.deeptruth.entity.User;
 import com.deeptruth.deeptruth.entity.Watermark;
 import com.deeptruth.deeptruth.repository.UserRepository;
+import com.deeptruth.deeptruth.repository.WatermarkRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
