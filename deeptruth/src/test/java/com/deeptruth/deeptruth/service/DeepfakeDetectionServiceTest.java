@@ -58,7 +58,6 @@ class DeepfakeDetectionServiceTest {
                 .user(mockUser)
                 .filePath("path1.mp4")
                 .result(DeepfakeResult.FAKE)
-                .riskScore(0.8f)
                 .createdAt(LocalDateTime.now())
                 .build();
 
@@ -67,7 +66,6 @@ class DeepfakeDetectionServiceTest {
                 .user(mockUser)
                 .filePath("path2.mp4")
                 .result(DeepfakeResult.REAL)
-                .riskScore(0.2f)
                 .createdAt(LocalDateTime.now())
                 .build();
     }
@@ -90,7 +88,6 @@ class DeepfakeDetectionServiceTest {
         assertNotNull(result);
         assertEquals(uploadedUrl, result.getFilePath());
         assertEquals(DeepfakeResult.FAKE, result.getResult()); // 하드코딩 값 기준
-        assertEquals(0.7F, result.getRiskScore());
 
         then(userRepository).should().findById(userId);
         then(amazonS3Service).should().uploadFile("deepfake", multipartFile);
@@ -109,7 +106,6 @@ class DeepfakeDetectionServiceTest {
                 .user(mockUser)
                 .filePath("test/path.mp4")
                 .result(DeepfakeResult.FAKE)
-                .riskScore(0.75f)
                 .createdAt(LocalDateTime.now())
                 .build();
 

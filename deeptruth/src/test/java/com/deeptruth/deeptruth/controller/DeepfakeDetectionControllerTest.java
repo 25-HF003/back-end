@@ -45,7 +45,6 @@ public class DeepfakeDetectionControllerTest {
         DeepfakeDetectionDTO mockDto = DeepfakeDetectionDTO.builder()
                 .filePath("https://s3.amazonaws.com/deepfake/video.mp4")
                 .result(deepfakeResult)
-                .riskScore(riskScore)
                 .build();
 
         given(deepfakeDetectionService.uploadVideo(eq(userId), any(MultipartFile.class)))
@@ -74,7 +73,6 @@ public class DeepfakeDetectionControllerTest {
                 .id(1L)
                 .filePath("test/path.mp4")
                 .result(DeepfakeResult.FAKE)
-                .riskScore(0.75f)
                 .createdAt(LocalDateTime.now())
                 .build();
 
@@ -101,7 +99,6 @@ public class DeepfakeDetectionControllerTest {
                 .id(id)
                 .filePath("test/path.mp4")
                 .result(DeepfakeResult.FAKE)
-                .riskScore(0.75f)
                 .createdAt(LocalDateTime.now())
                 .build();
 
