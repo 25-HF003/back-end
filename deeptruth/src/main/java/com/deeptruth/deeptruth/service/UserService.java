@@ -19,6 +19,16 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
+    // 정규식 상수 추출
+    private static final String LOGIN_ID_PATTERN = "^[a-z0-9]{6,20}$";
+    private static final String PASSWORD_PATTERN = "^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)(?=.*\\W).{8,30}$";
+    private static final String NICKNAME_PATTERN = "^[가-힣a-zA-Z0-9]{2,15}$";
+
+    // 에러 메시지 상수 추출
+    private static final String LOGIN_ID_ERROR_MESSAGE = "아이디는 6~20자의 영소문자 및 숫자만 가능합니다.";
+    private static final String PASSWORD_ERROR_MESSAGE = "비밀번호는 8~30자, 영대/소문자·숫자·특수문자를 모두 포함해야 합니다.";
+    private static final String NICKNAME_ERROR_MESSAGE = "닉네임은 2~15자, 공백 및 특수문자를 제외한 한글/영문/숫자만 가능합니다.";
+
     public User findOrCreateSocialUser(OAuth2UserInfo oAuth2UserInfo, String provider){
 
         return userRepository.findByEmail(oAuth2UserInfo.getEmail())
@@ -84,9 +94,8 @@ public class UserService {
     }
 
     private void validateLoginId(String loginId) {
-        // 6~20자, 영소문자·숫자만 허용
-        if (!loginId.matches("^[a-z0-9]{6,20}$")) {
-            throw new IllegalArgumentException("아이디는 6~20자의 영소문자 및 숫자만 가능합니다.");
+        if (!loginId.matches(LOGIN_ID_PATTERN)) {
+            throw new IllegalArgumentException(LOGIN_ID_ERROR_MESSAGE);
         }
     }
 
@@ -97,18 +106,14 @@ public class UserService {
         if (pw.equals(loginId)) {
             throw new IllegalArgumentException("비밀번호는 아이디와 동일할 수 없습니다.");
         }
-        // 8~30자, 영대소문자·숫자·특수문자 포함
-        if (!pw.matches("^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)(?=.*\\W).{8,30}$")) {
-            throw new IllegalArgumentException(
-                    "비밀번호는 8~30자, 영대/소문자·숫자·특수문자를 모두 포함해야 합니다.");
+        if (!pw.matches(PASSWORD_PATTERN)) {
+            throw new IllegalArgumentException(PASSWORD_ERROR_MESSAGE);
         }
     }
 
     private void validateNickname(String nickname) {
-        // 2~15자, 공백/특수문자 불가
-        if (!nickname.matches("^[가-힣a-zA-Z0-9]{2,15}$")) {
-            throw new IllegalArgumentException(
-                    "닉네임은 2~15자, 공백 및 특수문자를 제외한 한글/영문/숫자만 가능합니다.");
+        if (!nickname.matches(NICKNAME_PATTERN)) {
+            throw new IllegalArgumentException(NICKNAME_ERROR_MESSAGE);
         }
     }
 }
