@@ -85,10 +85,10 @@ public class UserServiceTest {
                 "홍길동", "userid123", "Password1!", "Password1!", "tester", "test@example.com"
         );
 
-        when(userRepository.findByEmail(request.getEmail())).thenReturn(Optional.empty());
-        when(userRepository.findByLoginId(request.getLoginId())).thenReturn(Optional.empty());
-        when(userRepository.findByNickname(request.getNickname())).thenReturn(Optional.empty());
-        when(passwordEncoder.encode(request.getPassword())).thenReturn("암호화된비밀번호");
+        when(userRepository.existsByEmail(request.getEmail())).thenReturn(false);
+        when(userRepository.existsByLoginId(request.getLoginId())).thenReturn(false);
+        when(userRepository.existsByNickname(request.getNickname())).thenReturn(false);
+        when(passwordEncoder.encode(request.getPassword())).thenReturn("암호화된 비밀번호");
 
         // when & then
         assertDoesNotThrow(() -> userService.signup(request));
@@ -114,8 +114,6 @@ public class UserServiceTest {
                 "홍길동", "userid123", "Password1!", "Password1!", "tester2", "test2@example.com"
         );
         when(userRepository.existsByLoginId(request.getLoginId())).thenReturn(true);
-        when(userRepository.existsByEmail(request.getEmail())).thenReturn(false);
-        when(userRepository.existsByNickname(request.getNickname())).thenReturn(false);
 
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> userService.signup(request));
         assertTrue(exception.getMessage().contains("아이디"));
@@ -126,8 +124,6 @@ public class UserServiceTest {
         SignupRequestDTO request = new SignupRequestDTO(
                 "홍길동", "userid124", "Password1!", "Password1!", "tester", "test3@example.com"
         );
-        when(userRepository.existsByEmail(request.getEmail())).thenReturn(false);
-        when(userRepository.existsByLoginId(request.getLoginId())).thenReturn(false);
         when(userRepository.existsByNickname(request.getNickname())).thenReturn(true);
 
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> userService.signup(request));
@@ -141,8 +137,6 @@ public class UserServiceTest {
                 "홍길동", "userid125", "Password1!", "Password1!", "tester5", "test@example.com"
         );
         when(userRepository.existsByEmail(request.getEmail())).thenReturn(true);
-        when(userRepository.existsByLoginId(request.getLoginId())).thenReturn(false);
-        when(userRepository.existsByNickname(request.getNickname())).thenReturn(false);
 
         // when & then
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> userService.signup(request));
