@@ -3,6 +3,7 @@ package com.deeptruth.deeptruth.service;
 import com.deeptruth.deeptruth.base.Enum.Role;
 import com.deeptruth.deeptruth.base.Enum.SocialLoginType;
 import com.deeptruth.deeptruth.base.OAuth.OAuth2UserInfo;
+import com.deeptruth.deeptruth.base.dto.SignupRequestDTO;
 import com.deeptruth.deeptruth.entity.User;
 import com.deeptruth.deeptruth.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -44,5 +45,9 @@ public class UserService {
 
     public boolean existsByUserId(Long userId){
         return userRepository.existsByUserId(userId);
+    }
+
+    public void signup(SignupRequestDTO request) {
+        throw new UnsupportedOperationException("아직 구현되지 않음");
     }
 }

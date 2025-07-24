@@ -1,22 +1,57 @@
 package com.deeptruth.deeptruth.controller;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.oauth2Login;
 
-import com.deeptruth.deeptruth.entity.User;
+import com.deeptruth.deeptruth.base.dto.SignupRequestDTO;
 import com.deeptruth.deeptruth.service.UserService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.time.LocalDate;
+@WebMvcTest(controllers = UserController.class)
+@AutoConfigureMockMvc(addFilters = false)
+public class UserControllerTest {
 
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockitoBean
+    private UserService userService;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    @Test
+    @DisplayName("회원가입 API 성공 테스트")
+    void signupApiSuccess() throws Exception {
+        // given
+        SignupRequestDTO request = new SignupRequestDTO(
+                "홍길동", "userid123", "Password1!", "Password1!"
+                , "tester", "test@example.com");
+
+        // when & then
+        mockMvc.perform(post("/api/signup")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("회원가입이 완료되었습니다."));
+
+        verify(userService).signup(any(SignupRequestDTO.class));
+    }
+}
+
+
+/*
 @WebMvcTest(UserController.class)
 public class UserControllerTest {
 //    @Autowired
@@ -60,3 +95,4 @@ public class UserControllerTest {
 //                .andExpect(status().isUnauthorized());
 //    }
 }
+ */
