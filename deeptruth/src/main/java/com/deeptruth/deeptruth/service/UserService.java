@@ -7,10 +7,14 @@ import com.deeptruth.deeptruth.base.dto.login.LoginRequestDTO;
 import com.deeptruth.deeptruth.base.dto.signup.SignupRequestDTO;
 import com.deeptruth.deeptruth.entity.User;
 import com.deeptruth.deeptruth.repository.UserRepository;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Date;
 import java.util.UUID;
 
 @Service
@@ -117,7 +121,34 @@ public class UserService {
         }
     }
 
+    @Value("${jwt.secret}")
+    private String jwtSecret;
+
+    @Value("${jwt.expiration}")
+    private long jwtExpiration;
+
     public String login(LoginRequestDTO loginRequestDTO) {
-        throw new UnsupportedOperationException("아직 구현되지 않음");
+        // 사용자 조회
+        User user = userRepository.findByLoginId(loginRequestDTO.getLoginId())
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 아이디입니다"));
+
+        // 비밀번호 검증
+        if (!passwordEncoder.matches(loginRequestDTO.getPassword(), user.getPassword())) {
+            throw new IllegalArgumentException("비밀번호가 일치하지 않습니다");
+        }
+
+        // JWT 토큰 생성
+        return generateJwtToken(user);
+    }
+
+    private String generateJwtToken(User user) {
+        return Jwts.builder()
+                .setSubject(user.getLoginId())
+                .claim("userId", user.getUserId())
+                .claim("role", user.getRole())
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + jwtExpiration))
+                .signWith(SignatureAlgorithm.HS256, jwtSecret)
+                .compact();
     }
 }

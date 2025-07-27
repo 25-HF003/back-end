@@ -1,5 +1,6 @@
 package com.deeptruth.deeptruth.controller;
 
+import com.deeptruth.deeptruth.base.dto.login.LoginRequestDTO;
 import com.deeptruth.deeptruth.base.dto.signup.SignupRequestDTO;
 import com.deeptruth.deeptruth.base.dto.response.ResponseDTO;
 import com.deeptruth.deeptruth.service.UserService;
@@ -30,4 +31,28 @@ public class UserController {
                 )
         );
     }
+
+    @PostMapping("/login")
+    public ResponseEntity<ResponseDTO<String>> login(@RequestBody LoginRequestDTO loginRequestDTO) {
+        try {
+            String jwtToken = userService.login(loginRequestDTO);
+
+            return ResponseEntity.ok(
+                    ResponseDTO.success(
+                            HttpStatus.OK.value(),
+                            "로그인이 완료되었습니다.",
+                            jwtToken
+                    )
+            );
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(
+                    ResponseDTO.success(
+                            HttpStatus.BAD_REQUEST.value(),
+                            e.getMessage(),
+                            (String) null
+                    )
+            );
+        }
+    }
+
 }

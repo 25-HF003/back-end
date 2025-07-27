@@ -1,9 +1,11 @@
 package com.deeptruth.deeptruth.service;
 
+import com.deeptruth.deeptruth.base.Enum.Role;
 import com.deeptruth.deeptruth.base.OAuth.OAuth2UserInfo;
 import com.deeptruth.deeptruth.base.dto.login.LoginRequestDTO;
 import com.deeptruth.deeptruth.entity.User;
 import com.deeptruth.deeptruth.repository.UserRepository;
+import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -12,7 +14,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.deeptruth.deeptruth.base.dto.signup.SignupRequestDTO;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Optional;
 
@@ -219,17 +223,25 @@ public class UserServiceTest {
     @Test
     void 로그인_성공_JWT토큰_반환() {
         // given
-        String loginId = "logintest001";
-        String password = "Password1!";
+        ReflectionTestUtils.setField(userService, "jwtSecret", "myDeepTruthSecretKey1234567890abcdefghijklmnopqrstuvwxyz");
+        ReflectionTestUtils.setField(userService, "jwtExpiration", 86400000L);
 
-        SignupRequestDTO signupRequest = new SignupRequestDTO();
-        signupRequest.setLoginId(loginId);
-        signupRequest.setPassword(password);
-        signupRequest.setPasswordConfirm(password);
-        signupRequest.setEmail("logintest001@example.com");
-        signupRequest.setName("로그인테스터");
-        signupRequest.setNickname("로그인테스터001");
-        userService.signup(signupRequest);
+        String loginId = "testuser123";
+        String password = "Password1!";
+        String encodedPassword = "encoded_password";
+
+        User mockUser = User.builder()
+                .userId(1L)
+                .loginId(loginId)
+                .password(encodedPassword)
+                .role(Role.USER)
+                .build();
+
+        // Mock 동작 설정
+        when(userRepository.findByLoginId(loginId))
+                .thenReturn(Optional.of(mockUser));
+        when(passwordEncoder.matches(password, encodedPassword))
+                .thenReturn(true);
 
         LoginRequestDTO loginRequest = new LoginRequestDTO();
         loginRequest.setLoginId(loginId);
@@ -243,13 +255,21 @@ public class UserServiceTest {
                 .isNotNull()
                 .isNotEmpty()
                 .contains(".");
+
+        verify(userRepository).findByLoginId(loginId);
+        verify(passwordEncoder).matches(password, encodedPassword);
     }
 
     @Test
     void 로그인_실패_존재하지않는_아이디() {
         // given
+        String loginId = "nonexistent";
+
+        when(userRepository.findByLoginId(loginId))
+                .thenReturn(Optional.empty());
+
         LoginRequestDTO loginRequest = new LoginRequestDTO();
-        loginRequest.setLoginId("nonexistent999");
+        loginRequest.setLoginId(loginId);
         loginRequest.setPassword("Password1!");
 
         // when & then
@@ -261,22 +281,24 @@ public class UserServiceTest {
     @Test
     void 로그인_실패_잘못된_비밀번호() {
         // given
-        String loginId = "logintest002";
-        String correctPassword = "Password1!";
-        String wrongPassword = "WrongPassword!";
+        String loginId = "testuser123";
+        String password = "wrongpassword";
+        String encodedPassword = "encoded_password";
 
-        SignupRequestDTO signupRequest = new SignupRequestDTO();
-        signupRequest.setLoginId(loginId);
-        signupRequest.setPassword(correctPassword);
-        signupRequest.setPasswordConfirm(correctPassword);
-        signupRequest.setEmail("logintest002@example.com");
-        signupRequest.setName("로그인테스터2");
-        signupRequest.setNickname("로그인테스터002");
-        userService.signup(signupRequest);
+        User mockUser = User.builder()
+                .userId(1L)
+                .loginId(loginId)
+                .password(encodedPassword)
+                .build();
+
+        when(userRepository.findByLoginId(loginId))
+                .thenReturn(Optional.of(mockUser));
+        when(passwordEncoder.matches(password, encodedPassword))
+                .thenReturn(false);
 
         LoginRequestDTO loginRequest = new LoginRequestDTO();
         loginRequest.setLoginId(loginId);
-        loginRequest.setPassword(wrongPassword);
+        loginRequest.setPassword(password);
 
         // when & then
         assertThatThrownBy(() -> userService.login(loginRequest))
