@@ -12,6 +12,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import static com.deeptruth.deeptruth.constants.LoginConstants.*;
+import static com.deeptruth.deeptruth.constants.SignupConstants.*;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api")
@@ -26,7 +29,7 @@ public class UserController {
         return ResponseEntity.ok(
                 ResponseDTO.success(
                         HttpStatus.OK.value(),
-                        "회원가입이 완료되었습니다.",
+                        SIGNUP_SUCCESS_MESSAGE,
                         null
                 )
         );
@@ -40,16 +43,15 @@ public class UserController {
             return ResponseEntity.ok(
                     ResponseDTO.success(
                             HttpStatus.OK.value(),
-                            "로그인이 완료되었습니다.",
+                            LOGIN_SUCCESS_MESSAGE,
                             jwtToken
                     )
             );
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(
-                    ResponseDTO.success(
+                    ResponseDTO.fail(
                             HttpStatus.BAD_REQUEST.value(),
-                            e.getMessage(),
-                            (String) null
+                            e.getMessage()
                     )
             );
         }

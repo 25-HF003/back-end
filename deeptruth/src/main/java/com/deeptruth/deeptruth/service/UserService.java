@@ -7,31 +7,23 @@ import com.deeptruth.deeptruth.base.dto.login.LoginRequestDTO;
 import com.deeptruth.deeptruth.base.dto.signup.SignupRequestDTO;
 import com.deeptruth.deeptruth.entity.User;
 import com.deeptruth.deeptruth.repository.UserRepository;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import com.deeptruth.deeptruth.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.Date;
 import java.util.UUID;
+
+import static com.deeptruth.deeptruth.constants.LoginConstants.*;
+import static com.deeptruth.deeptruth.constants.SignupConstants.*;
 
 @Service
 @RequiredArgsConstructor
 public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-
-    // 정규식 상수 추출
-    private static final String LOGIN_ID_PATTERN = "^[a-z0-9]{6,20}$";
-    private static final String PASSWORD_PATTERN = "^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)(?=.*\\W).{8,30}$";
-    private static final String NICKNAME_PATTERN = "^[가-힣a-zA-Z0-9]{2,15}$";
-
-    // 에러 메시지 상수 추출
-    private static final String LOGIN_ID_ERROR_MESSAGE = "아이디는 6~20자의 영소문자 및 숫자만 가능합니다.";
-    private static final String PASSWORD_ERROR_MESSAGE = "비밀번호는 8~30자, 영대/소문자·숫자·특수문자를 모두 포함해야 합니다.";
-    private static final String NICKNAME_ERROR_MESSAGE = "닉네임은 2~15자, 공백 및 특수문자를 제외한 한글/영문/숫자만 가능합니다.";
+    private final JwtUtil jwtUtil;
 
     public User findOrCreateSocialUser(OAuth2UserInfo oAuth2UserInfo, String provider){
 
@@ -73,13 +65,13 @@ public class UserService {
 
         // 중복 검사
         if (userRepository.existsByLoginId(request.getLoginId())) {
-            throw new IllegalArgumentException("이미 사용 중인 아이디입니다.");
+            throw new IllegalArgumentException(DUPLICATE_LOGIN_ID_MESSAGE);
         }
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new IllegalArgumentException("이미 사용 중인 이메일입니다.");
+            throw new IllegalArgumentException(DUPLICATE_EMAIL_MESSAGE);
         }
         if (userRepository.existsByNickname(request.getNickname())) {
-            throw new IllegalArgumentException("이미 사용 중인 닉네임입니다.");
+            throw new IllegalArgumentException(DUPLICATE_NICKNAME_MESSAGE);
         }
 
         // 비밀번호 암호화
@@ -105,7 +97,7 @@ public class UserService {
 
     private void validatePassword(String pw, String pwConfirm, String loginId) {
         if (!pw.equals(pwConfirm)) {
-            throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
+            throw new IllegalArgumentException(PASSWORD_MISMATCH_MESSAGE);
         }
         if (pw.equals(loginId)) {
             throw new IllegalArgumentException("비밀번호는 아이디와 동일할 수 없습니다.");
@@ -121,34 +113,26 @@ public class UserService {
         }
     }
 
-    @Value("${jwt.secret}")
-    private String jwtSecret;
-
-    @Value("${jwt.expiration}")
-    private long jwtExpiration;
-
     public String login(LoginRequestDTO loginRequestDTO) {
+        // null 체크
+        if (loginRequestDTO.getLoginId() == null || loginRequestDTO.getLoginId().trim().isEmpty()) {
+            throw new IllegalArgumentException(EMPTY_LOGIN_ID_MESSAGE);
+        }
+
+        if (loginRequestDTO.getPassword() == null || loginRequestDTO.getPassword().trim().isEmpty()) {
+            throw new IllegalArgumentException(EMPTY_PASSWORD_MESSAGE);
+        }
+
         // 사용자 조회
         User user = userRepository.findByLoginId(loginRequestDTO.getLoginId())
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 아이디입니다"));
+                .orElseThrow(() -> new IllegalArgumentException(USER_NOT_FOUND_MESSAGE));
 
         // 비밀번호 검증
         if (!passwordEncoder.matches(loginRequestDTO.getPassword(), user.getPassword())) {
-            throw new IllegalArgumentException("비밀번호가 일치하지 않습니다");
+            throw new IllegalArgumentException(PASSWORD_MISMATCH_MESSAGE);
         }
 
-        // JWT 토큰 생성
-        return generateJwtToken(user);
-    }
-
-    private String generateJwtToken(User user) {
-        return Jwts.builder()
-                .setSubject(user.getLoginId())
-                .claim("userId", user.getUserId())
-                .claim("role", user.getRole())
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + jwtExpiration))
-                .signWith(SignatureAlgorithm.HS256, jwtSecret)
-                .compact();
+        // JWT 생성
+        return jwtUtil.generateToken(user);
     }
 }

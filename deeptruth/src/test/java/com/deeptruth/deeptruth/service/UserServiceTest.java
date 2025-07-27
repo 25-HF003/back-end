@@ -5,6 +5,7 @@ import com.deeptruth.deeptruth.base.OAuth.OAuth2UserInfo;
 import com.deeptruth.deeptruth.base.dto.login.LoginRequestDTO;
 import com.deeptruth.deeptruth.entity.User;
 import com.deeptruth.deeptruth.repository.UserRepository;
+import com.deeptruth.deeptruth.util.JwtUtil;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,6 +21,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Optional;
 
+import static com.deeptruth.deeptruth.constants.LoginConstants.*;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
@@ -35,6 +37,9 @@ public class UserServiceTest {
 
     @Mock
     private PasswordEncoder passwordEncoder;
+
+    @Mock
+    private JwtUtil jwtUtil;
 
     @Test
     void 소셜로그인_기존_유저는_조회만_한다() {
@@ -111,7 +116,7 @@ public class UserServiceTest {
         // when & then
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
                 () -> userService.signup(request));
-        assertTrue(exception.getMessage().contains("비밀번호가 일치하지 않습니다."));
+        assertTrue(exception.getMessage().contains(PASSWORD_MISMATCH_MESSAGE));
     }
 
     @Test
@@ -223,9 +228,6 @@ public class UserServiceTest {
     @Test
     void 로그인_성공_JWT토큰_반환() {
         // given
-        ReflectionTestUtils.setField(userService, "jwtSecret", "myDeepTruthSecretKey1234567890abcdefghijklmnopqrstuvwxyz");
-        ReflectionTestUtils.setField(userService, "jwtExpiration", 86400000L);
-
         String loginId = "testuser123";
         String password = "Password1!";
         String encodedPassword = "encoded_password";
@@ -237,11 +239,12 @@ public class UserServiceTest {
                 .role(Role.USER)
                 .build();
 
-        // Mock 동작 설정
         when(userRepository.findByLoginId(loginId))
                 .thenReturn(Optional.of(mockUser));
         when(passwordEncoder.matches(password, encodedPassword))
                 .thenReturn(true);
+        when(jwtUtil.generateToken(any(User.class)))
+                .thenReturn("mocked.jwt.token");
 
         LoginRequestDTO loginRequest = new LoginRequestDTO();
         loginRequest.setLoginId(loginId);
@@ -258,6 +261,7 @@ public class UserServiceTest {
 
         verify(userRepository).findByLoginId(loginId);
         verify(passwordEncoder).matches(password, encodedPassword);
+        verify(jwtUtil).generateToken(any(User.class));
     }
 
     @Test
@@ -275,7 +279,9 @@ public class UserServiceTest {
         // when & then
         assertThatThrownBy(() -> userService.login(loginRequest))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("존재하지 않는 아이디입니다.");
+                .hasMessageContaining(USER_NOT_FOUND_MESSAGE);
+
+        verify(userRepository).findByLoginId(loginId);
     }
 
     @Test
@@ -304,5 +310,8 @@ public class UserServiceTest {
         assertThatThrownBy(() -> userService.login(loginRequest))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("비밀번호가 일치하지 않습니다.");
+
+        verify(userRepository).findByLoginId(loginId);
+        verify(passwordEncoder).matches(password, encodedPassword);
     }
 }
