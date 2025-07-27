@@ -1,6 +1,6 @@
 package com.deeptruth.deeptruth.controller;
 
-import com.deeptruth.deeptruth.base.dto.SignupRequestDTO;
+import com.deeptruth.deeptruth.base.dto.signup.SignupRequestDTO;
 import com.deeptruth.deeptruth.base.dto.response.ResponseDTO;
 import com.deeptruth.deeptruth.service.UserService;
 import lombok.RequiredArgsConstructor;

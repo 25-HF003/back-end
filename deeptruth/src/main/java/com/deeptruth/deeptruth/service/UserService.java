@@ -1,10 +1,10 @@
 package com.deeptruth.deeptruth.service;
 
-import com.deeptruth.deeptruth.base.Enum.Level;
 import com.deeptruth.deeptruth.base.Enum.Role;
 import com.deeptruth.deeptruth.base.Enum.SocialLoginType;
 import com.deeptruth.deeptruth.base.OAuth.OAuth2UserInfo;
-import com.deeptruth.deeptruth.base.dto.SignupRequestDTO;
+import com.deeptruth.deeptruth.base.dto.login.LoginRequestDTO;
+import com.deeptruth.deeptruth.base.dto.signup.SignupRequestDTO;
 import com.deeptruth.deeptruth.entity.User;
 import com.deeptruth.deeptruth.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -115,5 +115,9 @@ public class UserService {
         if (!nickname.matches(NICKNAME_PATTERN)) {
             throw new IllegalArgumentException(NICKNAME_ERROR_MESSAGE);
         }
+    }
+
+    public String login(LoginRequestDTO loginRequestDTO) {
+        throw new UnsupportedOperationException("아직 구현되지 않음");
     }
 }

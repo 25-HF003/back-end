@@ -1,4 +1,4 @@
-package com.deeptruth.deeptruth.base.dto;
+package com.deeptruth.deeptruth.base.dto.signup;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

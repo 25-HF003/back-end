@@ -1,6 +1,7 @@
 package com.deeptruth.deeptruth.service;
 
 import com.deeptruth.deeptruth.base.OAuth.OAuth2UserInfo;
+import com.deeptruth.deeptruth.base.dto.login.LoginRequestDTO;
 import com.deeptruth.deeptruth.entity.User;
 import com.deeptruth.deeptruth.repository.UserRepository;
 import org.junit.jupiter.api.Test;
@@ -8,14 +9,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import com.deeptruth.deeptruth.base.dto.SignupRequestDTO;
+import com.deeptruth.deeptruth.base.dto.signup.SignupRequestDTO;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Optional;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -78,6 +79,7 @@ public class UserServiceTest {
 
     }
 
+    // 일반 회원가입 테스트
     @Test
     void 회원가입_성공() {
         // given
@@ -105,7 +107,7 @@ public class UserServiceTest {
         // when & then
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
                 () -> userService.signup(request));
-        assertTrue(exception.getMessage().contains("비밀번호가 일치하지 않습니다"));
+        assertTrue(exception.getMessage().contains("비밀번호가 일치하지 않습니다."));
     }
 
     @Test
@@ -213,4 +215,72 @@ public class UserServiceTest {
         }
     }
 
+    // 로그인 테스트
+    @Test
+    void 로그인_성공_JWT토큰_반환() {
+        // given
+        String loginId = "logintest001";
+        String password = "Password1!";
+
+        SignupRequestDTO signupRequest = new SignupRequestDTO();
+        signupRequest.setLoginId(loginId);
+        signupRequest.setPassword(password);
+        signupRequest.setPasswordConfirm(password);
+        signupRequest.setEmail("logintest001@example.com");
+        signupRequest.setName("로그인테스터");
+        signupRequest.setNickname("로그인테스터001");
+        userService.signup(signupRequest);
+
+        LoginRequestDTO loginRequest = new LoginRequestDTO();
+        loginRequest.setLoginId(loginId);
+        loginRequest.setPassword(password);
+
+        // when
+        String jwtToken = userService.login(loginRequest);
+
+        // then
+        assertThat(jwtToken)
+                .isNotNull()
+                .isNotEmpty()
+                .contains(".");
+    }
+
+    @Test
+    void 로그인_실패_존재하지않는_아이디() {
+        // given
+        LoginRequestDTO loginRequest = new LoginRequestDTO();
+        loginRequest.setLoginId("nonexistent999");
+        loginRequest.setPassword("Password1!");
+
+        // when & then
+        assertThatThrownBy(() -> userService.login(loginRequest))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("존재하지 않는 아이디입니다.");
+    }
+
+    @Test
+    void 로그인_실패_잘못된_비밀번호() {
+        // given
+        String loginId = "logintest002";
+        String correctPassword = "Password1!";
+        String wrongPassword = "WrongPassword!";
+
+        SignupRequestDTO signupRequest = new SignupRequestDTO();
+        signupRequest.setLoginId(loginId);
+        signupRequest.setPassword(correctPassword);
+        signupRequest.setPasswordConfirm(correctPassword);
+        signupRequest.setEmail("logintest002@example.com");
+        signupRequest.setName("로그인테스터2");
+        signupRequest.setNickname("로그인테스터002");
+        userService.signup(signupRequest);
+
+        LoginRequestDTO loginRequest = new LoginRequestDTO();
+        loginRequest.setLoginId(loginId);
+        loginRequest.setPassword(wrongPassword);
+
+        // when & then
+        assertThatThrownBy(() -> userService.login(loginRequest))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("비밀번호가 일치하지 않습니다.");
+    }
 }
