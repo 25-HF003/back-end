@@ -36,18 +36,22 @@ public class UserControllerTest {
     void signupApiSuccess() throws Exception {
         // given
         SignupRequestDTO request = new SignupRequestDTO(
-                "홍길동", "userid123", "Password1!", "Password1!"
-                , "tester", "test@example.com");
+                "홍길동", "userid123", "Password1!", "Password1!", "tester", "test@example.com"
+        );
 
         // when & then
         mockMvc.perform(post("/api/signup")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.message").value("회원가입이 완료되었습니다."));
+                .andExpect(jsonPath("$.status").value(200))
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("회원가입이 완료되었습니다."))
+                .andExpect(jsonPath("$.data").isEmpty());
 
         verify(userService).signup(any(SignupRequestDTO.class));
     }
+
 }
 
 
