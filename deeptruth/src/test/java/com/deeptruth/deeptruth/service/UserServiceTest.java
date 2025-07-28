@@ -1,21 +1,28 @@
 package com.deeptruth.deeptruth.service;
 
+import com.deeptruth.deeptruth.base.Enum.Role;
 import com.deeptruth.deeptruth.base.OAuth.OAuth2UserInfo;
+import com.deeptruth.deeptruth.base.dto.login.LoginRequestDTO;
 import com.deeptruth.deeptruth.entity.User;
 import com.deeptruth.deeptruth.repository.UserRepository;
+import com.deeptruth.deeptruth.util.JwtUtil;
+import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import com.deeptruth.deeptruth.base.dto.SignupRequestDTO;
+import com.deeptruth.deeptruth.base.dto.signup.SignupRequestDTO;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Optional;
 
+import static com.deeptruth.deeptruth.constants.LoginConstants.*;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -30,6 +37,9 @@ public class UserServiceTest {
 
     @Mock
     private PasswordEncoder passwordEncoder;
+
+    @Mock
+    private JwtUtil jwtUtil;
 
     @Test
     void 소셜로그인_기존_유저는_조회만_한다() {
@@ -78,6 +88,7 @@ public class UserServiceTest {
 
     }
 
+    // 일반 회원가입 테스트
     @Test
     void 회원가입_성공() {
         // given
@@ -105,7 +116,7 @@ public class UserServiceTest {
         // when & then
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
                 () -> userService.signup(request));
-        assertTrue(exception.getMessage().contains("비밀번호가 일치하지 않습니다"));
+        assertTrue(exception.getMessage().contains(PASSWORD_MISMATCH_MESSAGE));
     }
 
     @Test
@@ -213,4 +224,94 @@ public class UserServiceTest {
         }
     }
 
+    // 로그인 테스트
+    @Test
+    void 로그인_성공_JWT토큰_반환() {
+        // given
+        String loginId = "testuser123";
+        String password = "Password1!";
+        String encodedPassword = "encoded_password";
+
+        User mockUser = User.builder()
+                .userId(1L)
+                .loginId(loginId)
+                .password(encodedPassword)
+                .role(Role.USER)
+                .build();
+
+        when(userRepository.findByLoginId(loginId))
+                .thenReturn(Optional.of(mockUser));
+        when(passwordEncoder.matches(password, encodedPassword))
+                .thenReturn(true);
+        when(jwtUtil.generateToken(any(User.class)))
+                .thenReturn("mocked.jwt.token");
+
+        LoginRequestDTO loginRequest = new LoginRequestDTO();
+        loginRequest.setLoginId(loginId);
+        loginRequest.setPassword(password);
+
+        // when
+        String jwtToken = userService.login(loginRequest);
+
+        // then
+        assertThat(jwtToken)
+                .isNotNull()
+                .isNotEmpty()
+                .contains(".");
+
+        verify(userRepository).findByLoginId(loginId);
+        verify(passwordEncoder).matches(password, encodedPassword);
+        verify(jwtUtil).generateToken(any(User.class));
+    }
+
+    @Test
+    void 로그인_실패_존재하지않는_아이디() {
+        // given
+        String loginId = "nonexistent";
+
+        when(userRepository.findByLoginId(loginId))
+                .thenReturn(Optional.empty());
+
+        LoginRequestDTO loginRequest = new LoginRequestDTO();
+        loginRequest.setLoginId(loginId);
+        loginRequest.setPassword("Password1!");
+
+        // when & then
+        assertThatThrownBy(() -> userService.login(loginRequest))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining(USER_NOT_FOUND_MESSAGE);
+
+        verify(userRepository).findByLoginId(loginId);
+    }
+
+    @Test
+    void 로그인_실패_잘못된_비밀번호() {
+        // given
+        String loginId = "testuser123";
+        String password = "wrongpassword";
+        String encodedPassword = "encoded_password";
+
+        User mockUser = User.builder()
+                .userId(1L)
+                .loginId(loginId)
+                .password(encodedPassword)
+                .build();
+
+        when(userRepository.findByLoginId(loginId))
+                .thenReturn(Optional.of(mockUser));
+        when(passwordEncoder.matches(password, encodedPassword))
+                .thenReturn(false);
+
+        LoginRequestDTO loginRequest = new LoginRequestDTO();
+        loginRequest.setLoginId(loginId);
+        loginRequest.setPassword(password);
+
+        // when & then
+        assertThatThrownBy(() -> userService.login(loginRequest))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("비밀번호가 일치하지 않습니다.");
+
+        verify(userRepository).findByLoginId(loginId);
+        verify(passwordEncoder).matches(password, encodedPassword);
+    }
 }

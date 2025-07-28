@@ -1,12 +1,16 @@
 package com.deeptruth.deeptruth.controller;
 
+import static com.deeptruth.deeptruth.constants.LoginConstants.*;
+import static com.deeptruth.deeptruth.constants.SignupConstants.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
-import com.deeptruth.deeptruth.base.dto.SignupRequestDTO;
+import com.deeptruth.deeptruth.base.dto.login.LoginRequestDTO;
+import com.deeptruth.deeptruth.base.dto.signup.SignupRequestDTO;
 import com.deeptruth.deeptruth.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
@@ -46,10 +50,82 @@ public class UserControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value(200))
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.message").value("회원가입이 완료되었습니다."))
+                .andExpect(jsonPath("$.message").value(SIGNUP_SUCCESS_MESSAGE))
                 .andExpect(jsonPath("$.data").isEmpty());
 
         verify(userService).signup(any(SignupRequestDTO.class));
+    }
+
+    @Test
+    @DisplayName("로그인 API 성공 테스트")
+    void loginApiSuccess() throws Exception {
+        // given
+        LoginRequestDTO loginRequest = new LoginRequestDTO();
+        loginRequest.setLoginId("testuser123");
+        loginRequest.setPassword("Password1!");
+
+        when(userService.login(any(LoginRequestDTO.class)))
+                .thenReturn("mocked.jwt.token");
+
+        // when & then
+        mockMvc.perform(post("/api/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(loginRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value(200))
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value(LOGIN_SUCCESS_MESSAGE))
+                .andExpect(jsonPath("$.data").value("mocked.jwt.token"));
+
+        verify(userService).login(any(LoginRequestDTO.class));
+    }
+
+    @Test
+    @DisplayName("로그인 API 실패 테스트 - 존재하지 않는 아이디")
+    void loginApiFailure_UserNotFound() throws Exception {
+        // given
+        LoginRequestDTO loginRequest = new LoginRequestDTO();
+        loginRequest.setLoginId("nonexistent");
+        loginRequest.setPassword("Password1!");
+
+        when(userService.login(any(LoginRequestDTO.class)))
+                .thenThrow(new IllegalArgumentException(USER_NOT_FOUND_MESSAGE));
+
+        // when & then
+        mockMvc.perform(post("/api/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(loginRequest)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value(USER_NOT_FOUND_MESSAGE))
+                .andExpect(jsonPath("$.data").isEmpty());
+
+        verify(userService).login(any(LoginRequestDTO.class));
+    }
+
+    @Test
+    @DisplayName("로그인 API 실패 테스트 - 잘못된 비밀번호")
+    void loginApiFailure_InvalidPassword() throws Exception {
+        // given
+        LoginRequestDTO loginRequest = new LoginRequestDTO();
+        loginRequest.setLoginId("testuser123");
+        loginRequest.setPassword("wrongpassword");
+
+        when(userService.login(any(LoginRequestDTO.class)))
+                .thenThrow(new IllegalArgumentException(PASSWORD_MISMATCH_MESSAGE));
+
+        // when & then
+        mockMvc.perform(post("/api/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(loginRequest)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value(PASSWORD_MISMATCH_MESSAGE))
+                .andExpect(jsonPath("$.data").isEmpty());
+
+        verify(userService).login(any(LoginRequestDTO.class));
     }
 
 }
