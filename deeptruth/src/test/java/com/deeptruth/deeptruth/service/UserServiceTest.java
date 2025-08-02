@@ -3,7 +3,10 @@ package com.deeptruth.deeptruth.service;
 import com.deeptruth.deeptruth.base.Enum.Role;
 import com.deeptruth.deeptruth.base.OAuth.OAuth2UserInfo;
 import com.deeptruth.deeptruth.base.dto.login.LoginRequestDTO;
+import com.deeptruth.deeptruth.base.dto.login.LoginResponse;
+import com.deeptruth.deeptruth.entity.RefreshToken;
 import com.deeptruth.deeptruth.entity.User;
+import com.deeptruth.deeptruth.repository.RefreshTokenRepository;
 import com.deeptruth.deeptruth.repository.UserRepository;
 import com.deeptruth.deeptruth.util.JwtUtil;
 import jakarta.transaction.Transactional;
@@ -40,6 +43,9 @@ public class UserServiceTest {
 
     @Mock
     private JwtUtil jwtUtil;
+
+    @Mock
+    private RefreshTokenRepository refreshTokenRepository;
 
     @Test
     void 소셜로그인_기존_유저는_조회만_한다() {
@@ -225,6 +231,7 @@ public class UserServiceTest {
     }
 
     // 로그인 테스트
+    /*
     @Test
     void 로그인_성공_JWT토큰_반환() {
         // given
@@ -251,18 +258,53 @@ public class UserServiceTest {
         loginRequest.setPassword(password);
 
         // when
-//        String jwtToken = userService.login(loginRequest);
+        String jwtToken = userService.login(loginRequest);
 
         // then
-//        assertThat(jwtToken)
-//                .isNotNull()
-//                .isNotEmpty()
-//                .contains(".");
+        assertThat(jwtToken)
+                .isNotNull()
+                .isNotEmpty()
+                .contains(".");
 
         verify(userRepository).findByLoginId(loginId);
         verify(passwordEncoder).matches(password, encodedPassword);
         verify(jwtUtil).generateToken(any(User.class));
     }
+     */
+
+    @Test
+    void 로그인_성공시_두_토큰_반환() {
+        // given
+        LoginRequestDTO request = new LoginRequestDTO("testuser123", "TestPassword1!");
+
+        User mockUser = User.builder()
+                .userId(1L)
+                .loginId("testuser123")
+                .password("encodedPassword")
+                .email("test@example.com")
+                .nickname("테스트닉네임")
+                .name("테스트사용자")
+                .role(Role.USER)
+                .build();
+
+        when(userRepository.findByLoginId("testuser123")).thenReturn(Optional.of(mockUser));
+        when(passwordEncoder.matches("TestPassword1!", "encodedPassword")).thenReturn(true);
+        when(jwtUtil.generateAccessToken(mockUser)).thenReturn("accessToken123");
+        when(jwtUtil.generateRefreshToken(mockUser)).thenReturn("refreshToken456");
+
+        // when
+        LoginResponse response = userService.login(request);
+
+        // then
+        assertThat(response.getAccessToken()).isNotNull();
+        assertThat(response.getRefreshToken()).isNotNull();
+        assertThat(response.getAccessToken()).isEqualTo("accessToken123");
+        assertThat(response.getRefreshToken()).isEqualTo("refreshToken456");
+
+        // verify
+        verify(refreshTokenRepository).save(any(RefreshToken.class));
+    }
+
 
     @Test
     void 로그인_실패_존재하지않는_아이디() {
