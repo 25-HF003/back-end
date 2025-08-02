@@ -2,6 +2,7 @@ package com.deeptruth.deeptruth.controller;
 
 import com.deeptruth.deeptruth.base.dto.login.LoginRequestDTO;
 import com.deeptruth.deeptruth.base.dto.login.LoginResponse;
+import com.deeptruth.deeptruth.base.dto.login.RefreshTokenRequest;
 import com.deeptruth.deeptruth.base.dto.signup.SignupRequestDTO;
 import com.deeptruth.deeptruth.base.dto.response.ResponseDTO;
 import com.deeptruth.deeptruth.service.UserService;
@@ -18,7 +19,7 @@ import static com.deeptruth.deeptruth.constants.SignupConstants.*;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api")
+@RequestMapping("/api/auth")
 public class UserController {
 
     private final UserService userService;
@@ -58,4 +59,27 @@ public class UserController {
         }
     }
 
+    @PostMapping("/refresh")
+    public ResponseEntity<ResponseDTO<LoginResponse>> refreshToken(@RequestBody RefreshTokenRequest request) {
+        try {
+            LoginResponse response = userService.refreshAccessToken(request.getRefreshToken());
+            return ResponseEntity.ok(
+                    ResponseDTO.success(HttpStatus.OK.value(), "토큰 재발급 성공", response));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(
+                    ResponseDTO.fail(HttpStatus.BAD_REQUEST.value(), e.getMessage()));
+        }
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<ResponseDTO<String>> logout(@RequestBody RefreshTokenRequest request) {
+        try {
+            userService.logout(request.getRefreshToken());
+            return ResponseEntity.ok(
+                    ResponseDTO.success(HttpStatus.OK.value(), "로그아웃 완료", "성공적으로 로그아웃되었습니다."));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(
+                    ResponseDTO.fail(HttpStatus.BAD_REQUEST.value(), e.getMessage()));
+        }
+    }
 }

@@ -169,4 +169,51 @@ public class UserService {
         }
     }
 
+    // 토큰 재발급 메서드
+    public LoginResponse refreshAccessToken(String refreshToken) {
+        // 1. Refresh Token 유효성 검증
+        if (!jwtUtil.validateToken(refreshToken)) {
+            throw new IllegalArgumentException("유효하지 않은 Refresh Token입니다.");
+        }
+
+        // 2. DB에서 Refresh Token 확인
+        RefreshToken storedToken = refreshTokenRepository.findByToken(refreshToken)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 Refresh Token입니다."));
+
+        // 3. 만료 여부 확인
+        if (storedToken.isExpired()) {
+            refreshTokenRepository.delete(storedToken); // 만료된 토큰 삭제
+            throw new IllegalArgumentException("만료된 Refresh Token입니다.");
+        }
+
+        // 4. 사용자 정보로 새로운 Access Token 생성
+        User user = storedToken.getUser();
+        String newAccessToken = jwtUtil.generateAccessToken(user);
+
+        // 5. 새로운 Refresh Token도 생성 (보안 강화)
+        String newRefreshToken = jwtUtil.generateRefreshToken(user);
+
+        // 6. DB의 Refresh Token 업데이트
+        storedToken.setToken(newRefreshToken);
+        refreshTokenRepository.save(storedToken);
+
+        return new LoginResponse(newAccessToken, newRefreshToken);
+    }
+
+    public void logout(String refreshToken) {
+        // 1. Refresh Token이 유효한지 확인
+        if (refreshToken == null || refreshToken.trim().isEmpty()) {
+            throw new IllegalArgumentException("Refresh Token이 필요합니다.");
+        }
+
+        // 2. DB에서 해당 Refresh Token 찾기
+        Optional<RefreshToken> storedToken = refreshTokenRepository.findByToken(refreshToken);
+
+        // 3. 토큰이 존재하면 삭제
+        if (storedToken.isPresent()) {
+            refreshTokenRepository.delete(storedToken.get());
+        }
+    }
+
+
 }
