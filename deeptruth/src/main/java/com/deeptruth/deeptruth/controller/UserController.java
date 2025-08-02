@@ -1,6 +1,7 @@
 package com.deeptruth.deeptruth.controller;
 
 import com.deeptruth.deeptruth.base.dto.login.LoginRequestDTO;
+import com.deeptruth.deeptruth.base.dto.login.LoginResponse;
 import com.deeptruth.deeptruth.base.dto.signup.SignupRequestDTO;
 import com.deeptruth.deeptruth.base.dto.response.ResponseDTO;
 import com.deeptruth.deeptruth.service.UserService;
@@ -36,15 +37,15 @@ public class UserController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<ResponseDTO<String>> login(@RequestBody LoginRequestDTO loginRequestDTO) {
+    public ResponseEntity<ResponseDTO<LoginResponse>> login(@RequestBody LoginRequestDTO request) {
         try {
-            String jwtToken = userService.login(loginRequestDTO);
+            LoginResponse loginResponse = userService.login(request);
 
             return ResponseEntity.ok(
                     ResponseDTO.success(
                             HttpStatus.OK.value(),
                             LOGIN_SUCCESS_MESSAGE,
-                            jwtToken
+                            loginResponse
                     )
             );
         } catch (IllegalArgumentException e) {
