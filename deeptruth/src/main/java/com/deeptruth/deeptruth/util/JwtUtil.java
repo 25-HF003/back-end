@@ -18,14 +18,11 @@ public class JwtUtil {
     @Value("${jwt.secret}")
     private String jwtSecret;
 
-    @Value("${jwt.expiration}")
-    private long jwtExpiration;
+    @Value("${jwt.access-token-expiration}")
+    private long accessToken = 60 * 60 * 1000L;
 
-    // Access Token 1시간
-    private final long accessToken = 60 * 60 * 1000L;
-
-    // Refresh Token 2주
-    private final long refreshToken = 14 * 24 * 60 * 60 * 1000L;
+    @Value("${jwt.refresh-token-expiration}")
+    private long refreshToken = 14 * 24 * 60 * 60 * 1000L;
 
     public String generateAccessToken(User user) {
         return Jwts.builder()

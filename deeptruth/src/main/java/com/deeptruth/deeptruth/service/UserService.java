@@ -201,19 +201,23 @@ public class UserService {
     }
 
     public void logout(String refreshToken) {
-        // 1. Refresh Token이 유효한지 확인
         if (refreshToken == null || refreshToken.trim().isEmpty()) {
             throw new IllegalArgumentException("Refresh Token이 필요합니다.");
         }
 
-        // 2. DB에서 해당 Refresh Token 찾기
+        if (!jwtUtil.validateToken(refreshToken)) {
+            throw new IllegalArgumentException("유효하지 않은 Refresh Token입니다.");
+        }
+
         Optional<RefreshToken> storedToken = refreshTokenRepository.findByToken(refreshToken);
 
-        // 3. 토큰이 존재하면 삭제
         if (storedToken.isPresent()) {
             refreshTokenRepository.delete(storedToken.get());
+        } else {
+            throw new IllegalArgumentException("이미 로그아웃되었거나 존재하지 않는 Refresh Token입니다.");
         }
     }
+
 
 
 }
