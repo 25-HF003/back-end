@@ -6,11 +6,11 @@ import com.deeptruth.deeptruth.entity.Watermark;
 import com.deeptruth.deeptruth.repository.UserRepository;
 import com.deeptruth.deeptruth.repository.WatermarkRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.stream.Collectors;
+import java.awt.print.Pageable;
 
 @Service
 @Transactional
@@ -20,13 +20,9 @@ public class WatermarkService {
     private final UserRepository userRepository;
     private final AmazonS3Service amazonS3Service;
 
-    public List<WatermarkDTO> getAllResult(Long userId){
-        User user = userRepository.findById(userId).orElseThrow();
-        List<Watermark> results = watermarkRepository.findAllByUser(user);
-
-        return results.stream()
-                .map(WatermarkDTO::fromEntity)
-                .collect(Collectors.toList());
+    public Page<WatermarkDTO> getAllResult(Long userId, Pageable pageable){
+        return watermarkRepository.findByUser_UserId(userId, pageable)
+                .map(WatermarkDTO::fromEntity);
     }
 
     public WatermarkDTO getSingleResult(Long userId, Long id){
