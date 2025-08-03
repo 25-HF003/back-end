@@ -8,6 +8,10 @@ import com.deeptruth.deeptruth.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -78,8 +82,8 @@ public class DeepfakeDetectionController {
     }
 
     @GetMapping
-    public ResponseEntity<ResponseDTO> getAllDetections(@RequestParam Long userId){
-        List<DeepfakeDetectionDTO> result = deepfakeDetectionService.getAllResult(userId);
+    public ResponseEntity<ResponseDTO> getAllDetections(@RequestParam Long userId, @PageableDefault(size = 15, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable){
+        Page<DeepfakeDetectionDTO> result = deepfakeDetectionService.getAllResult(userId, pageable);
         return ResponseEntity.ok(
                 ResponseDTO.success(200, "딥페이크 탐지 결과 전체 조회 성공", result)
         );

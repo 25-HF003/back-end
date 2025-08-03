@@ -9,6 +9,8 @@ import com.deeptruth.deeptruth.repository.DeepfakeDetectionRepository;
 import com.deeptruth.deeptruth.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import net.minidev.json.JSONUtil;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -79,13 +81,9 @@ public class DeepfakeDetectionService {
         return imageUrl;
     }
 
-    public List<DeepfakeDetectionDTO> getAllResult(Long userId){
-        User user = userRepository.findById(userId).orElseThrow();
-        List<DeepfakeDetection> results = deepfakeDetectionRepository.findAllByUser(user);
-
-        return results.stream()
-                .map(DeepfakeDetectionDTO::fromEntity)
-                .collect(Collectors.toList());
+    public Page<DeepfakeDetectionDTO> getAllResult(Long userId, Pageable pageable){
+        return deepfakeDetectionRepository.findByUser_UserId(userId, pageable)
+                .map(DeepfakeDetectionDTO::fromEntity);
     }
 
     public DeepfakeDetectionDTO getSingleResult(Long userId, Long id) {
