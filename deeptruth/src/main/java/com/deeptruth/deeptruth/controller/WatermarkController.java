@@ -2,10 +2,20 @@ package com.deeptruth.deeptruth.controller;
 
 import com.deeptruth.deeptruth.base.dto.response.ResponseDTO;
 import com.deeptruth.deeptruth.base.dto.watermark.WatermarkDTO;
+import com.deeptruth.deeptruth.base.dto.watermark.WatermarkFlaskResponseDTO;
+import com.deeptruth.deeptruth.service.UserService;
 import com.deeptruth.deeptruth.service.WatermarkService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.reactive.function.BodyInserters;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 import java.util.List;
 
@@ -16,6 +26,61 @@ public class WatermarkController {
 
     private final WatermarkService waterMarkService;
 
+    private final UserService userService;
+    private final WebClient webClient;
+
+    @Value("${flask.watermark-server.url}")
+    private String flaskServerUrl;
+
+    @PostMapping
+    public ResponseEntity<ResponseDTO> insertWatermark(@RequestParam Long userId, @RequestPart("file") MultipartFile multipartFile, @RequestPart String message){
+        try {
+            if (!userService.existsByUserId(userId)) {
+                return ResponseEntity.status(404).body(ResponseDTO.fail(404, "존재하지 않는 사용자입니다."));
+            }
+
+            ByteArrayResource resource = new ByteArrayResource(multipartFile.getBytes()) {
+                @Override
+                public String getFilename() {
+                    return multipartFile.getOriginalFilename();
+                }
+            };
+
+            MultipartBodyBuilder builder = new MultipartBodyBuilder();
+            builder.part("image", resource);
+            builder.part("message", message);
+
+            Mono<WatermarkFlaskResponseDTO> flaskResponseMono = webClient.post()
+                    .uri(flaskServerUrl + "/watermark-insert")
+                    .contentType(MediaType.MULTIPART_FORM_DATA)
+                    .body(BodyInserters.fromMultipartData(builder.build()))
+                    .retrieve()
+                    .bodyToMono(WatermarkFlaskResponseDTO.class);
+
+            WatermarkFlaskResponseDTO flaskResult = flaskResponseMono.block();
+
+            if (flaskResult == null) {
+                return ResponseEntity.status(500).body(ResponseDTO.fail(500, "Flask 서버 응답 실패"));
+            }
+
+            String base64Image = flaskResult.getImage_base64();
+            String waterMarkedImageUrl = null;
+
+
+            if (base64Image != null && !base64Image.isEmpty()) {
+                waterMarkedImageUrl = waterMarkService.uploadBase64ImageToS3(base64Image, userId);
+                flaskResult.setWatermarkedFilePath(waterMarkedImageUrl);
+            }
+
+            WatermarkDTO dto = waterMarkService.createWatermark(userId, flaskResult);
+
+            return ResponseEntity.ok(ResponseDTO.success(200, "워터마크 삽입 성공", dto));
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(ResponseDTO.fail(500, "서버 오류: " + e.getMessage()));
+        }
+    }
 
     @GetMapping
     public ResponseEntity<ResponseDTO> getAllWatermarks(@RequestParam Long userId){
