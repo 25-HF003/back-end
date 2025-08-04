@@ -64,8 +64,8 @@ public class UserControllerTest {
         loginRequest.setLoginId("testuser123");
         loginRequest.setPassword("Password1!");
 
-        when(userService.login(any(LoginRequestDTO.class)))
-                .thenReturn("mocked.jwt.token");
+//        when(userService.login(any(LoginRequestDTO.class)))
+//                .thenReturn("mocked.jwt.token");
 
         // when & then
         mockMvc.perform(post("/api/login")

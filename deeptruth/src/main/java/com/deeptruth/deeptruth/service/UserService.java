@@ -4,14 +4,19 @@ import com.deeptruth.deeptruth.base.Enum.Role;
 import com.deeptruth.deeptruth.base.Enum.SocialLoginType;
 import com.deeptruth.deeptruth.base.OAuth.OAuth2UserInfo;
 import com.deeptruth.deeptruth.base.dto.login.LoginRequestDTO;
+import com.deeptruth.deeptruth.base.dto.login.LoginResponse;
 import com.deeptruth.deeptruth.base.dto.signup.SignupRequestDTO;
 import com.deeptruth.deeptruth.entity.User;
+import com.deeptruth.deeptruth.repository.RefreshTokenRepository;
 import com.deeptruth.deeptruth.repository.UserRepository;
 import com.deeptruth.deeptruth.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import com.deeptruth.deeptruth.entity.RefreshToken;
+import com.deeptruth.deeptruth.base.dto.login.LoginResponse;
+import java.util.Optional;
 
 import java.util.UUID;
 
@@ -24,6 +29,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final RefreshTokenRepository refreshTokenRepository;
 
     public User findOrCreateSocialUser(OAuth2UserInfo oAuth2UserInfo, String provider){
 
@@ -113,7 +119,7 @@ public class UserService {
         }
     }
 
-    public String login(LoginRequestDTO loginRequestDTO) {
+    public LoginResponse login(LoginRequestDTO loginRequestDTO) {
         // null 체크
         if (loginRequestDTO.getLoginId() == null || loginRequestDTO.getLoginId().trim().isEmpty()) {
             throw new IllegalArgumentException(EMPTY_LOGIN_ID_MESSAGE);
@@ -132,7 +138,86 @@ public class UserService {
             throw new IllegalArgumentException(PASSWORD_MISMATCH_MESSAGE);
         }
 
-        // JWT 생성
-        return jwtUtil.generateToken(user);
+        // 토큰 생성
+        String accessToken = jwtUtil.generateAccessToken(user);   // 1시간
+        String refreshToken = jwtUtil.generateRefreshToken(user); // 2주
+
+        // Refresh Token DB 저장
+        saveOrUpdateRefreshToken(user, refreshToken);
+
+        // LoginResponse 객체로 반환
+        return new LoginResponse(accessToken, refreshToken);
     }
+
+    // Refresh Token 저장/업데이트 메서드
+    private void saveOrUpdateRefreshToken(User user, String refreshToken) {
+        // 기존 Refresh Token이 있는지 확인
+        Optional<RefreshToken> existingToken = refreshTokenRepository.findByUser(user);
+
+        if (existingToken.isPresent()) {
+            // 기존 토큰이 있으면 업데이트 (중복 방지)
+            RefreshToken token = existingToken.get();
+            token.setToken(refreshToken);
+            refreshTokenRepository.save(token);
+        } else {
+            // 신규 사용자면 새로 생성
+            RefreshToken newToken = RefreshToken.builder()
+                    .user(user)
+                    .token(refreshToken)
+                    .build();
+            refreshTokenRepository.save(newToken);
+        }
+    }
+
+    // 토큰 재발급 메서드
+    public LoginResponse refreshAccessToken(String refreshToken) {
+        // 1. Refresh Token 유효성 검증
+        if (!jwtUtil.validateToken(refreshToken)) {
+            throw new IllegalArgumentException("유효하지 않은 Refresh Token입니다.");
+        }
+
+        // 2. DB에서 Refresh Token 확인
+        RefreshToken storedToken = refreshTokenRepository.findByToken(refreshToken)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 Refresh Token입니다."));
+
+        // 3. 만료 여부 확인
+        if (storedToken.isExpired()) {
+            refreshTokenRepository.delete(storedToken); // 만료된 토큰 삭제
+            throw new IllegalArgumentException("만료된 Refresh Token입니다.");
+        }
+
+        // 4. 사용자 정보로 새로운 Access Token 생성
+        User user = storedToken.getUser();
+        String newAccessToken = jwtUtil.generateAccessToken(user);
+
+        // 5. 새로운 Refresh Token도 생성 (보안 강화)
+        String newRefreshToken = jwtUtil.generateRefreshToken(user);
+
+        // 6. DB의 Refresh Token 업데이트
+        storedToken.setToken(newRefreshToken);
+        refreshTokenRepository.save(storedToken);
+
+        return new LoginResponse(newAccessToken, newRefreshToken);
+    }
+
+    public void logout(String refreshToken) {
+        if (refreshToken == null || refreshToken.trim().isEmpty()) {
+            throw new IllegalArgumentException("Refresh Token이 필요합니다.");
+        }
+
+        if (!jwtUtil.validateToken(refreshToken)) {
+            throw new IllegalArgumentException("유효하지 않은 Refresh Token입니다.");
+        }
+
+        Optional<RefreshToken> storedToken = refreshTokenRepository.findByToken(refreshToken);
+
+        if (storedToken.isPresent()) {
+            refreshTokenRepository.delete(storedToken.get());
+        } else {
+            throw new IllegalArgumentException("이미 로그아웃되었거나 존재하지 않는 Refresh Token입니다.");
+        }
+    }
+
+
+
 }
