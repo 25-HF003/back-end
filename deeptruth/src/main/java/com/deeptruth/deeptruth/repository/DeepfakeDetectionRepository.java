@@ -3,6 +3,8 @@ package com.deeptruth.deeptruth.repository;
 import com.deeptruth.deeptruth.base.dto.deepfake.DeepfakeDetectionDTO;
 import com.deeptruth.deeptruth.entity.DeepfakeDetection;
 import com.deeptruth.deeptruth.entity.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -13,5 +15,5 @@ public interface DeepfakeDetectionRepository extends JpaRepository<DeepfakeDetec
     Optional<DeepfakeDetection> findByDeepfakeDetectionIdAndUser(Long id, User user);
     void deleteByDeepfakeDetectionIdAndUser(Long id, User user);
     List<DeepfakeDetection> findAllByUser(User user);
-
+    Page<DeepfakeDetection> findByUser_UserId(Long userId, Pageable pageable);
 }

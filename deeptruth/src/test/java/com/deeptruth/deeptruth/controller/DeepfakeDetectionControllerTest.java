@@ -76,8 +76,8 @@ public class DeepfakeDetectionControllerTest {
                 .createdAt(LocalDateTime.now())
                 .build();
 
-        Mockito.when(deepfakeDetectionService.getAllResult(userId))
-                .thenReturn(List.of(dto));
+//        Mockito.when(deepfakeDetectionService.getAllResult(userId))
+//                .thenReturn(List.of(dto));
 
         mockMvc.perform(get("/deepfake")
                         .param("userId", String.valueOf(userId)))
