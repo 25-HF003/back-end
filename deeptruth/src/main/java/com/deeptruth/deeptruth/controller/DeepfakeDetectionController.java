@@ -33,7 +33,7 @@ public class DeepfakeDetectionController {
 
     private final WebClient webClient;
 
-    @Value("${flask.server.url}")
+    @Value("${flask.deepfakeServer.url}")
     private String flaskServerUrl;
 
     @PostMapping
