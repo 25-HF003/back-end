@@ -6,6 +6,9 @@ import com.deeptruth.deeptruth.base.dto.watermark.WatermarkFlaskResponseDTO;
 import com.deeptruth.deeptruth.service.UserService;
 import com.deeptruth.deeptruth.service.WatermarkService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.MediaType;
@@ -17,6 +20,7 @@ import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
+import java.awt.print.Pageable;
 import java.util.List;
 
 @RestController
@@ -83,8 +87,8 @@ public class WatermarkController {
     }
 
     @GetMapping
-    public ResponseEntity<ResponseDTO> getAllWatermarks(@RequestParam Long userId){
-        List<WatermarkDTO> result = waterMarkService.getAllResult(userId);
+    public ResponseEntity<ResponseDTO> getAllWatermarks(@RequestParam Long userId, @PageableDefault(size = 15, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable){
+        Page<WatermarkDTO> result = waterMarkService.getAllResult(userId, pageable);
         return ResponseEntity.ok(
                 ResponseDTO.success(200, "워터마크 삽입 기록 전체 조회 성공", result)
         );

@@ -7,9 +7,11 @@ import com.deeptruth.deeptruth.entity.Watermark;
 import com.deeptruth.deeptruth.repository.UserRepository;
 import com.deeptruth.deeptruth.repository.WatermarkRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.awt.print.Pageable;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.time.LocalDateTime;
@@ -25,7 +27,7 @@ public class WatermarkService {
     private final WatermarkRepository watermarkRepository;
     private final UserRepository userRepository;
     private final AmazonS3Service amazonS3Service;
-
+      
     public WatermarkDTO createWatermark(Long userId, WatermarkFlaskResponseDTO dto){
         User user = userRepository.findById(userId).orElseThrow();
 
@@ -48,14 +50,10 @@ public class WatermarkService {
 
         return imageUrl;
     }
-
-    public List<WatermarkDTO> getAllResult(Long userId){
-        User user = userRepository.findById(userId).orElseThrow();
-        List<Watermark> results = watermarkRepository.findAllByUser(user);
-
-        return results.stream()
-                .map(WatermarkDTO::fromEntity)
-                .collect(Collectors.toList());
+  
+    public Page<WatermarkDTO> getAllResult(Long userId, Pageable pageable){
+        return watermarkRepository.findByUser_UserId(userId, pageable)
+                .map(WatermarkDTO::fromEntity);
     }
 
     public WatermarkDTO getSingleResult(Long userId, Long id){

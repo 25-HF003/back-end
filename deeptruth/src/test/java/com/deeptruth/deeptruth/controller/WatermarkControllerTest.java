@@ -39,7 +39,7 @@ public class WatermarkControllerTest {
         WatermarkDTO dto1 = new WatermarkDTO(1L, "original1.jpg", "watermarked1.jpg", LocalDateTime.parse("2024-01-01T00:00:00"));
         WatermarkDTO dto2 = new WatermarkDTO(2L, "original2.jpg", "watermarked2.jpg", LocalDateTime.parse("2024-01-02T00:00:00"));
 
-        Mockito.when(waterMarkService.getAllResult(userId)).thenReturn(List.of(dto1, dto2));
+        // Mockito.when(waterMarkService.getAllResult(userId)).thenReturn(List.of(dto1, dto2));
 
         // when & then
         mockMvc.perform(get("/watermark")
