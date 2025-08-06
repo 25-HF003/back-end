@@ -7,6 +7,7 @@ import com.deeptruth.deeptruth.service.UserService;
 import com.deeptruth.deeptruth.service.WatermarkService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,7 +21,6 @@ import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
-import java.awt.print.Pageable;
 import java.util.List;
 
 @RestController
@@ -33,7 +33,7 @@ public class WatermarkController {
     private final UserService userService;
     private final WebClient webClient;
 
-    @Value("${flask.watermark-server.url}")
+    @Value("${flask.watermarkServer.url}")
     private String flaskServerUrl;
 
     @PostMapping
