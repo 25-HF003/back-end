@@ -8,6 +8,7 @@ import java.util.List;
 
 @Repository
 public interface NoiseRepository extends JpaRepository<Noise, Long> {
-    List<Noise> findAllByUserId(Long userId);
-    boolean existsByUserId(Long userId);
+    List<Noise> findAllByUser_UserId(Long userId);
+
+    boolean existsByUser_UserId(Long userId);
 }
