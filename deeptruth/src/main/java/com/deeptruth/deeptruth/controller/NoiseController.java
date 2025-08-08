@@ -19,7 +19,7 @@ public class NoiseController {
 
     @GetMapping
     public ResponseEntity<List<NoiseDTO>> getAllNoiseRecordsByUserId(@RequestParam Long userId) {
-        List<NoiseDTO> noiseRecords = noiseService.getAllNoiseRecords(userId);
+        List<NoiseDTO> noiseRecords = noiseService.getUserNoiseHistory(userId);
         return ResponseEntity.ok(noiseRecords);
     }
 }

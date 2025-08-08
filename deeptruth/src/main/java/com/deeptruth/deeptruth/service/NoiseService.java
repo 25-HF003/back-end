@@ -14,7 +14,7 @@ public class NoiseService {
 
     private final NoiseRepository noiseRepository;
 
-    public List<NoiseDTO> getAllNoiseRecords(Long userId) {
+    public List<NoiseDTO> getUserNoiseHistory(Long userId) {
         List<Noise> noiseRecords = noiseRepository.findAllByUserId(userId);
         return noiseRecords.stream()
                 .map(NoiseDTO::fromEntity)
