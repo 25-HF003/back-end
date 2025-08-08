@@ -14,6 +14,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.reactive.function.BodyInserters;
@@ -37,10 +39,14 @@ public class DeepfakeDetectionController {
     private String flaskServerUrl;
 
     @PostMapping
-    public ResponseEntity<ResponseDTO> detectVideo(Long userId, @RequestPart("file")MultipartFile multipartFile){
+    public ResponseEntity<ResponseDTO> detectVideo(Long userId, @RequestPart("file")MultipartFile multipartFile, String taskId){
         try {
             if (!userService.existsByUserId(userId)) {
                 return ResponseEntity.status(404).body(ResponseDTO.fail(404, "존재하지 않는 사용자입니다."));
+            }
+
+            if (taskId == null || taskId.isBlank()) {
+                taskId = java.util.UUID.randomUUID().toString();
             }
 
             ByteArrayResource resource = new ByteArrayResource(multipartFile.getBytes()) {
@@ -50,14 +56,17 @@ public class DeepfakeDetectionController {
                 }
             };
 
-            Mono<FlaskResponseDTO> flaskResponseMono = webClient.post()
+            MultiValueMap<String, Object> form = new LinkedMultiValueMap<>();
+            form.add("file", resource);
+            form.add("taskId", taskId);
+
+            FlaskResponseDTO flaskResult = webClient.post()
                     .uri(flaskServerUrl + "/predict")
                     .contentType(MediaType.MULTIPART_FORM_DATA)
-                    .body(BodyInserters.fromMultipartData("file", resource))
+                    .body(BodyInserters.fromMultipartData(form))
                     .retrieve()
-                    .bodyToMono(FlaskResponseDTO.class);
-
-            FlaskResponseDTO flaskResult = flaskResponseMono.block();
+                    .bodyToMono(FlaskResponseDTO.class)
+                    .block();
 
             if (flaskResult == null) {
                 return ResponseEntity.status(500).body(ResponseDTO.fail(500, "Flask 서버 응답 실패"));
