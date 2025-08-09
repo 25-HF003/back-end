@@ -39,7 +39,7 @@ public class NoiseService {
 
         // User 엔티티 조회
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다"));
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
         // 처리된 파일 경로 생성
         String processedFilePath = generateProcessedFilePath(request.getOriginalFilePath());

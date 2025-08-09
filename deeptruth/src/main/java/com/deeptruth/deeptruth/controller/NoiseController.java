@@ -28,13 +28,13 @@ public class NoiseController {
         try {
             if (user == null) {
                 return ResponseEntity.status(401)
-                        .body(ResponseDTO.fail(401, "인증이 필요합니다"));
+                        .body(ResponseDTO.fail(401, "인증이 필요합니다."));
             }
 
             Long userId = user.getUserId();
             String userName = user.getName();
 
-            log.info("사용자 {}({})의 노이즈 이력 조회 요청", userName, userId);
+            log.info("사용자 ID {}의 노이즈 이력 조회 요청", userId);
 
             List<NoiseDTO> history = noiseService.getUserNoiseHistory(userId);
 
@@ -47,13 +47,6 @@ public class NoiseController {
         }
     }
 
-
-    @GetMapping
-    public ResponseEntity<List<NoiseDTO>> getAllNoiseRecordsByUserId(@RequestParam Long userId) {
-        List<NoiseDTO> noiseRecords = noiseService.getUserNoiseHistory(userId);
-        return ResponseEntity.ok(noiseRecords);
-    }
-
     @PostMapping
     public ResponseEntity<ResponseDTO<NoiseDTO>> createNoise(
             @AuthenticationPrincipal User user,
@@ -61,14 +54,14 @@ public class NoiseController {
         try {
             if (user == null) {
                 return ResponseEntity.status(401)
-                        .body(ResponseDTO.fail(401, "인증이 필요합니다"));
+                        .body(ResponseDTO.fail(401, "인증이 필요합니다."));
             }
 
             Long userId = user.getUserId();
             String userName = user.getName();
 
-            log.info("사용자 {}({})의 노이즈 생성 요청: epsilon={}",
-                    userName, userId, request.getEpsilon());
+            log.info("사용자 ID {}의 노이즈 생성 요청: epsilon={}",
+                    userId, request.getEpsilon());
 
             NoiseDTO createdNoise = noiseService.createNoise(userId, request);
 
@@ -95,7 +88,7 @@ public class NoiseController {
         try {
             if (user == null) {
                 return ResponseEntity.status(401)
-                        .body(ResponseDTO.fail(401, "인증이 필요합니다"));
+                        .body(ResponseDTO.fail(401, "인증이 필요합니다."));
             }
 
             NoiseDTO noise = noiseService.getNoiseById(user.getUserId(), noiseId);

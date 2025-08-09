@@ -35,6 +35,7 @@ public class SecurityConfig {
                                 "/v3/api-docs/**",
                                 "/**"  // ⚡ 모든 요청을 인증 없이 허용 (임시 설정)
                         ).permitAll()
+                        .requestMatchers("/api/noise/**").authenticated()
                         .anyRequest().permitAll()
                 )
                 .oauth2Login(oauth2 -> oauth2
