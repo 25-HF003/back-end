@@ -294,5 +294,61 @@ class NoiseServiceTest {
                 .hasMessage("접근 권한이 없습니다.");
     }
 
+    @Test
+    @DisplayName("노이즈 삭제 성공")
+    void 노이즈_삭제_성공() {
+        // given
+        Long userId = 1L;
+        Long noiseId = 1L;
+        Noise mockNoise = 테스트용_노이즈_생성(noiseId, userId);
+
+        when(userRepository.existsById(userId)).thenReturn(true);
+        when(noiseRepository.findById(noiseId)).thenReturn(Optional.of(mockNoise));
+        doNothing().when(noiseRepository).delete(mockNoise);
+
+        // when
+        noiseService.deleteNoise(userId, noiseId);
+
+        // then
+        verify(userRepository).existsById(userId);
+        verify(noiseRepository).findById(noiseId);
+        verify(noiseRepository).delete(mockNoise);
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 노이즈 삭제 시 예외 발생")
+    void 존재하지_않는_노이즈_삭제_실패() {
+        // given
+        Long userId = 1L;
+        Long noiseId = 999L;
+
+        when(userRepository.existsById(userId)).thenReturn(true);
+        when(noiseRepository.findById(noiseId)).thenReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> noiseService.deleteNoise(userId, noiseId))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("노이즈를 찾을 수 없습니다.");
+    }
+
+    @Test
+    @DisplayName("다른 사용자의 노이즈 삭제 시 권한 예외 발생")
+    void 권한_없는_노이즈_삭제_실패() {
+        // given
+        Long userId = 1L;
+        Long otherUserId = 2L;
+        Long noiseId = 1L;
+
+        Noise otherUserNoise = 테스트용_노이즈_생성(noiseId, otherUserId);
+
+        when(userRepository.existsById(userId)).thenReturn(true);
+        when(noiseRepository.findById(noiseId)).thenReturn(Optional.of(otherUserNoise));
+
+        // when & then
+        assertThatThrownBy(() -> noiseService.deleteNoise(userId, noiseId))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("접근 권한이 없습니다.");
+    }
+
 
 }

@@ -86,5 +86,9 @@ public class NoiseService {
         return NoiseDTO.fromEntity(noise);
     }
 
+    public void deleteNoise(Long userId, Long noiseId) {
+        // TODO: 구현 예정
+        throw new UnsupportedOperationException("아직 구현되지 않음.");
+    }
 
 }
