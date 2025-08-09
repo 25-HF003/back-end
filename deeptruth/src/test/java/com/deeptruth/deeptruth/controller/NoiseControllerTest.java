@@ -1,11 +1,13 @@
 package com.deeptruth.deeptruth.controller;
 
 import com.deeptruth.deeptruth.base.dto.noise.NoiseDTO;
+import com.deeptruth.deeptruth.config.JwtAuthenticationFilter;
 import com.deeptruth.deeptruth.config.SecurityConfig;
 import com.deeptruth.deeptruth.repository.UserRepository;
 import com.deeptruth.deeptruth.service.NoiseService;
 import com.deeptruth.deeptruth.util.JwtUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -48,6 +50,9 @@ class NoiseControllerTest {
 
     @MockitoBean
     private UserRepository userRepository;
+
+    @MockitoBean
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Test
     @WithMockUser
@@ -134,4 +139,32 @@ class NoiseControllerTest {
 
         verify(noiseService).getUserNoiseHistory(any(Long.class));
     }
+
+    @Test
+    @DisplayName("노이즈 개별 조회 성공")
+    void 노이즈_개별_조회_성공() throws Exception {
+        // when & then
+        mockMvc.perform(get("/api/noise/{noiseId}", 1L)
+                        .with(user("1")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value(200))
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("노이즈 조회 성공"))
+                .andExpect(jsonPath("$.data.noiseId").value(1))
+                .andExpect(jsonPath("$.data.originalFilePath").exists())
+                .andExpect(jsonPath("$.data.processedFilePath").exists());
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 노이즈 조회 시 404 응답")
+    void 존재하지_않는_노이즈_조회_실패() throws Exception {
+        // when & then
+        mockMvc.perform(get("/api/noise/{noiseId}", 999L)
+                        .with(user("1")))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("노이즈를 찾을 수 없습니다"));
+    }
+
 }
