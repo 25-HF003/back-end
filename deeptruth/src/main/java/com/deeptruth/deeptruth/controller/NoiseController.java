@@ -88,4 +88,30 @@ public class NoiseController {
         }
     }
 
+    @GetMapping("/{noiseId}")
+    public ResponseEntity<ResponseDTO<NoiseDTO>> getNoiseById(
+            @AuthenticationPrincipal User user,
+            @PathVariable Long noiseId) {
+        try {
+            if (user == null) {
+                return ResponseEntity.status(401)
+                        .body(ResponseDTO.fail(401, "인증이 필요합니다"));
+            }
+
+            NoiseDTO noise = noiseService.getNoiseById(user.getUserId(), noiseId);
+
+            return ResponseEntity.ok(
+                    ResponseDTO.success(200, "노이즈 조회 성공", noise));
+
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(404)
+                    .body(ResponseDTO.fail(404, e.getMessage()));
+        } catch (Exception e) {
+            log.error("노이즈 조회 중 오류 발생: ", e);
+            return ResponseEntity.status(500)
+                    .body(ResponseDTO.fail(500, "서버 오류: " + e.getMessage()));
+        }
+    }
+
+
 }

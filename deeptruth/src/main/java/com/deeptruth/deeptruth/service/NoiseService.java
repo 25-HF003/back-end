@@ -66,4 +66,25 @@ public class NoiseService {
                 .replace(".png", "_noised.png");
     }
 
+    // 노이즈 개별 조회 (권한 검증 포함)
+    @Transactional(readOnly = true)
+    public NoiseDTO getNoiseById(Long userId, Long noiseId) {
+        // 사용자 존재 확인
+        if (!userRepository.existsById(userId)) {
+            throw new IllegalArgumentException("사용자를 찾을 수 없습니다.");
+        }
+
+        // 노이즈 조회
+        Noise noise = noiseRepository.findById(noiseId)
+                .orElseThrow(() -> new IllegalArgumentException("노이즈를 찾을 수 없습니다."));
+
+        // 권한 검증 (본인의 노이즈인지 확인)
+        if (!noise.getUser().getUserId().equals(userId)) {
+            throw new IllegalArgumentException("접근 권한이 없습니다.");
+        }
+
+        return NoiseDTO.fromEntity(noise);
+    }
+
+
 }
