@@ -92,6 +92,7 @@ public class UserController {
             UserProfile profile = UserProfile.builder()
                     .userId(user.getUserId())
                     .loginId(user.getLoginId())
+                    .name(user.getName())
                     .nickname(user.getNickname())
                     .email(user.getEmail())
                     .role(user.getRole())
