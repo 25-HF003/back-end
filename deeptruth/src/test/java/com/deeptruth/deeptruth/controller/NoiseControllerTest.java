@@ -113,7 +113,7 @@ class NoiseControllerTest {
                 .andExpect(status().isInternalServerError()) // 401 → 500으로 변경
                 .andExpect(jsonPath("$.status").value(500))    // 401 → 500으로 변경
                 .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.message").exists());
+                .andExpect(jsonPath("$.message").exists();
     }
 
     @Test
