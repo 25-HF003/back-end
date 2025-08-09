@@ -113,5 +113,30 @@ public class NoiseController {
         }
     }
 
+    @DeleteMapping("/{noiseId}")
+    public ResponseEntity<ResponseDTO<Void>> deleteNoise(
+            @AuthenticationPrincipal User user,
+            @PathVariable Long noiseId) {
+        try {
+            if (user == null) {
+                return ResponseEntity.status(401)
+                        .body(ResponseDTO.fail(401, "인증이 필요합니다."));
+            }
+
+            noiseService.deleteNoise(user.getUserId(), noiseId);
+
+            return ResponseEntity.ok(
+                    ResponseDTO.success(200, "노이즈 삭제 성공", null));
+
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(404)
+                    .body(ResponseDTO.fail(404, e.getMessage()));
+        } catch (Exception e) {
+            log.error("노이즈 삭제 중 오류 발생: ", e);
+            return ResponseEntity.status(500)
+                    .body(ResponseDTO.fail(500, "서버 오류: " + e.getMessage()));
+        }
+    }
+
 
 }

@@ -86,9 +86,23 @@ public class NoiseService {
         return NoiseDTO.fromEntity(noise);
     }
 
+    @Transactional
     public void deleteNoise(Long userId, Long noiseId) {
-        // TODO: 구현 예정
-        throw new UnsupportedOperationException("아직 구현되지 않음.");
-    }
+        // 1. 사용자 존재 확인
+        if (!userRepository.existsById(userId)) {
+            throw new IllegalArgumentException("사용자를 찾을 수 없습니다.");
+        }
 
+        // 2. 노이즈 조회
+        Noise noise = noiseRepository.findById(noiseId)
+                .orElseThrow(() -> new IllegalArgumentException("노이즈를 찾을 수 없습니다."));
+
+        // 3. 권한 확인 (본인의 노이즈인지)
+        if (!noise.getUser().getUserId().equals(userId)) {
+            throw new IllegalArgumentException("접근 권한이 없습니다.");
+        }
+
+        // 4. 삭제 실행
+        noiseRepository.delete(noise);
+    }
 }
