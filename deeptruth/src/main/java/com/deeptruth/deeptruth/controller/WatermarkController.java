@@ -3,6 +3,7 @@ package com.deeptruth.deeptruth.controller;
 import com.deeptruth.deeptruth.base.dto.response.ResponseDTO;
 import com.deeptruth.deeptruth.base.dto.watermark.WatermarkDTO;
 import com.deeptruth.deeptruth.base.dto.watermark.WatermarkFlaskResponseDTO;
+import com.deeptruth.deeptruth.entity.User;
 import com.deeptruth.deeptruth.service.UserService;
 import com.deeptruth.deeptruth.service.WatermarkService;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +16,7 @@ import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.MultipartBodyBuilder;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.reactive.function.BodyInserters;
@@ -37,10 +39,11 @@ public class WatermarkController {
     private String flaskServerUrl;
 
     @PostMapping
-    public ResponseEntity<ResponseDTO> insertWatermark(@RequestParam Long userId, @RequestPart("file") MultipartFile multipartFile, @RequestPart String message){
+    public ResponseEntity<ResponseDTO> insertWatermark(@AuthenticationPrincipal User user, @RequestPart("file") MultipartFile multipartFile, @RequestPart String message){
         try {
-            if (!userService.existsByUserId(userId)) {
-                return ResponseEntity.status(404).body(ResponseDTO.fail(404, "존재하지 않는 사용자입니다."));
+            if (user == null) {
+                return ResponseEntity.status(401)
+                        .body(ResponseDTO.fail(401, "인증이 필요합니다."));
             }
 
             ByteArrayResource resource = new ByteArrayResource(multipartFile.getBytes()) {
@@ -72,11 +75,11 @@ public class WatermarkController {
 
 
             if (base64Image != null && !base64Image.isEmpty()) {
-                waterMarkedImageUrl = waterMarkService.uploadBase64ImageToS3(base64Image, userId);
+                waterMarkedImageUrl = waterMarkService.uploadBase64ImageToS3(base64Image, user.getUserId());
                 flaskResult.setWatermarkedFilePath(waterMarkedImageUrl);
             }
 
-            WatermarkDTO dto = waterMarkService.createWatermark(userId, flaskResult);
+            WatermarkDTO dto = waterMarkService.createWatermark(user.getUserId(), flaskResult);
 
             return ResponseEntity.ok(ResponseDTO.success(200, "워터마크 삽입 성공", dto));
 
