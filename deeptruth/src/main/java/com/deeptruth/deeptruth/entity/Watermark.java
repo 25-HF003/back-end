@@ -22,9 +22,6 @@ public class Watermark {
     private User user;
 
     @Column(nullable=false, length = 255)
-    private String originalFilePath;
-
-    @Column(nullable=false, length = 255)
     private String watermarkedFilePath;
 
     @Column(nullable=false, updatable = false)
