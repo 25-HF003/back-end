@@ -24,6 +24,9 @@ public class Watermark {
     @Column(nullable=false, length = 255)
     private String watermarkedFilePath;
 
+    @Column(nullable=false, length = 255)
+    private String fileName;
+
     @Column(nullable=false, updatable = false)
     private LocalDateTime createdAt;
 
