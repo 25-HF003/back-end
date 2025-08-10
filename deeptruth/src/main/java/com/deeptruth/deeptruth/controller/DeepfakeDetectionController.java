@@ -3,6 +3,7 @@ package com.deeptruth.deeptruth.controller;
 import com.deeptruth.deeptruth.base.dto.deepfake.DeepfakeDetectionDTO;
 import com.deeptruth.deeptruth.base.dto.deepfake.FlaskResponseDTO;
 import com.deeptruth.deeptruth.base.dto.response.ResponseDTO;
+import com.deeptruth.deeptruth.entity.User;
 import com.deeptruth.deeptruth.service.DeepfakeDetectionService;
 import com.deeptruth.deeptruth.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +15,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
@@ -26,7 +28,7 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/deepfake")
+@RequestMapping("/api/deepfake")
 public class DeepfakeDetectionController {
 
     private final DeepfakeDetectionService deepfakeDetectionService;
@@ -39,11 +41,8 @@ public class DeepfakeDetectionController {
     private String flaskServerUrl;
 
     @PostMapping
-    public ResponseEntity<ResponseDTO> detectVideo(Long userId, @RequestPart("file")MultipartFile multipartFile, String taskId){
+    public ResponseEntity<ResponseDTO> detectVideo(@AuthenticationPrincipal User user, @RequestPart("file")MultipartFile multipartFile, String taskId){
         try {
-            if (!userService.existsByUserId(userId)) {
-                return ResponseEntity.status(404).body(ResponseDTO.fail(404, "존재하지 않는 사용자입니다."));
-            }
 
             if (taskId == null || taskId.isBlank()) {
                 taskId = java.util.UUID.randomUUID().toString();
@@ -76,11 +75,11 @@ public class DeepfakeDetectionController {
             String imageUrl = null;
 
             if (base64Image != null && !base64Image.isEmpty()) {
-                imageUrl = deepfakeDetectionService.uploadBase64ImageToS3(base64Image, userId);
+                imageUrl = deepfakeDetectionService.uploadBase64ImageToS3(base64Image, user.getUserId());
                 flaskResult.setImageUrl(imageUrl);
             }
 
-            DeepfakeDetectionDTO dto = deepfakeDetectionService.createDetection(userId, flaskResult);
+            DeepfakeDetectionDTO dto = deepfakeDetectionService.createDetection(user.getUserId(), flaskResult);
 
             return ResponseEntity.ok(ResponseDTO.success(200, "딥페이크 탐지 결과 수신 성공", dto));
 
