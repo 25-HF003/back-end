@@ -27,7 +27,7 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/watermark")
+@RequestMapping("/api/watermark")
 public class WatermarkController {
 
     private final WatermarkService waterMarkService;
@@ -90,8 +90,10 @@ public class WatermarkController {
     }
 
     @GetMapping
-    public ResponseEntity<ResponseDTO> getAllWatermarks(@RequestParam Long userId, @PageableDefault(size = 15, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable){
-        Page<WatermarkDTO> result = waterMarkService.getAllResult(userId, pageable);
+    public ResponseEntity<ResponseDTO> getAllWatermarks(@AuthenticationPrincipal User user, @PageableDefault(size = 15, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable){
+
+
+        Page<WatermarkDTO> result = waterMarkService.getAllResult(user.getUserId(), pageable);
         return ResponseEntity.ok(
                 ResponseDTO.success(200, "워터마크 삽입 기록 전체 조회 성공", result)
         );
@@ -99,14 +101,16 @@ public class WatermarkController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ResponseDTO> getWatermark(@PathVariable Long id, @RequestParam Long userId){
-        WatermarkDTO result = waterMarkService.getSingleResult(userId, id);
+    public ResponseEntity<ResponseDTO> getWatermark(@PathVariable Long id, @AuthenticationPrincipal User user){
+
+        WatermarkDTO result = waterMarkService.getSingleResult(user.getUserId(), id);
         return ResponseEntity.ok(ResponseDTO.success(200, "워터마크 삽입 기록 조회 성공", result));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<ResponseDTO> deleteWatermark(@PathVariable Long id, @RequestParam Long userId){
-        waterMarkService.deleteWatermark(userId, id);
+    public ResponseEntity<ResponseDTO> deleteWatermark(@PathVariable Long id, @AuthenticationPrincipal User user){
+
+        waterMarkService.deleteWatermark(user.getUserId(), id);
         return ResponseEntity.ok(
                 ResponseDTO.success(200, "워터마크 삽입 기록 삭제 성공", null)
         );
