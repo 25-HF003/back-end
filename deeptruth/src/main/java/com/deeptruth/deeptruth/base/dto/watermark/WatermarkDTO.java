@@ -13,12 +13,14 @@ import java.time.LocalDateTime;
 public class WatermarkDTO {
     private Long id;
     private String watermarkedFilePath;
+    private String fileName;
     private LocalDateTime createdAt;
 
     public static WatermarkDTO fromEntity(Watermark entity){
         return WatermarkDTO.builder()
                 .id(entity.getWatermarkId())
                 .watermarkedFilePath(entity.getWatermarkedFilePath())
+                .fileName(entity.getFileName())
                 .createdAt(entity.getCreatedAt())
                 .build();
     }
