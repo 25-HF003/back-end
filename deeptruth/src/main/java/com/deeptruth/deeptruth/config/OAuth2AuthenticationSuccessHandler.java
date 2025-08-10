@@ -76,7 +76,7 @@ public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccess
                 }
         );
 
-        String redirectUrl = UriComponentsBuilder.fromUriString("http://localhost:3000/oauth2/redirect")
+        String redirectUrl = UriComponentsBuilder.fromUriString("http://localhost:5173/oauth2/redirect")
                 .queryParam("accessToken", accessToken)
                 .queryParam("refreshToken", refreshTokenStr)
                 .build().toUriString();
