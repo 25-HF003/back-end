@@ -13,6 +13,7 @@ import lombok.NoArgsConstructor;
 public class UserProfile {
     private Long userId;
     private String loginId;
+    private String name;
     private String nickname;
     private String email;
     private Role role;
