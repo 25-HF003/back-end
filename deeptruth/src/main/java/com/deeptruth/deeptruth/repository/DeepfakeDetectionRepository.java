@@ -13,7 +13,7 @@ import java.util.Optional;
 public interface DeepfakeDetectionRepository extends JpaRepository<DeepfakeDetection, Long> {
     void deleteByDeepfakeDetectionId(Long id);
     Optional<DeepfakeDetection> findByDeepfakeDetectionIdAndUser(Long id, User user);
-    void deleteByDeepfakeDetectionIdAndUser(Long id, User user);
+    int deleteByDeepfakeDetectionIdAndUser(Long id, User user);
     List<DeepfakeDetection> findAllByUser(User user);
     Page<DeepfakeDetection> findByUser_UserId(Long userId, Pageable pageable);
 }
