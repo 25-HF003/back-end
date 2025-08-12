@@ -41,7 +41,17 @@ public class DeepfakeDetectionController {
     private String flaskServerUrl;
 
     @PostMapping
-    public ResponseEntity<ResponseDTO> detectVideo(@AuthenticationPrincipal User user, @RequestPart("file")MultipartFile multipartFile, String taskId){
+    public ResponseEntity<ResponseDTO> detectVideo(
+            @AuthenticationPrincipal User user,
+            @RequestPart("file")MultipartFile multipartFile,
+            @RequestParam(required = false) String taskId,
+            @RequestParam(required = false, defaultValue = "default") String mode,           // default | precision
+            @RequestParam(required = false) Boolean useTta,
+            @RequestParam(required = false) Boolean useIllum,
+            @RequestParam(required = false) String detector,                                 // auto | dlib | dnn
+            @RequestParam(required = false) Integer smoothWindow,
+            @RequestParam(required = false) Integer minFace,
+            @RequestParam(required = false) Integer sampleCount){
         try {
 
             if (taskId == null || taskId.isBlank()) {
@@ -55,14 +65,26 @@ public class DeepfakeDetectionController {
                 }
             };
 
-            MultiValueMap<String, Object> form = new LinkedMultiValueMap<>();
-            form.add("file", resource);
-            form.add("taskId", taskId);
+            org.springframework.http.client.MultipartBodyBuilder mb = new org.springframework.http.client.MultipartBodyBuilder();
+            mb.part("file", resource)
+                    .filename(resource.getFilename())
+                    .contentType(multipartFile.getContentType() != null ? MediaType.parseMediaType(multipartFile.getContentType())
+                            : MediaType.APPLICATION_OCTET_STREAM);
+            mb.part("taskId", taskId);
+            // 옵션은 null 아닐 때만 전송 (Flask에서 preset 적용)
+            if (mode != null)             mb.part("mode", mode);
+            if (useTta != null)           mb.part("use_tta", String.valueOf(useTta));
+            if (useIllum != null)         mb.part("use_illum", String.valueOf(useIllum));
+            if (detector != null)         mb.part("detector", detector);
+            if (smoothWindow != null)     mb.part("smooth_window", String.valueOf(smoothWindow));
+            if (minFace != null)          mb.part("min_face", String.valueOf(minFace));
+            if (sampleCount != null)      mb.part("sample_count", String.valueOf(sampleCount));
+
 
             FlaskResponseDTO flaskResult = webClient.post()
                     .uri(flaskServerUrl + "/predict")
                     .contentType(MediaType.MULTIPART_FORM_DATA)
-                    .body(BodyInserters.fromMultipartData(form))
+                    .body(BodyInserters.fromMultipartData(mb.build()))
                     .retrieve()
                     .bodyToMono(FlaskResponseDTO.class)
                     .block();
