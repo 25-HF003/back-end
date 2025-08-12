@@ -43,6 +43,7 @@ public class WatermarkService {
         Watermark watermark = Watermark.builder()
                 .user(user)
                 .watermarkedFilePath(dto.getWatermarkedFilePath())
+                .fileName(dto.getFilename())
                 .createdAt(LocalDateTime.now())
                 .build();
 
