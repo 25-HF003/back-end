@@ -13,7 +13,7 @@ import java.util.Optional;
 @Repository
 public interface WatermarkRepository extends JpaRepository<Watermark, Long> {
     List<Watermark> findAllByUser(User user);
-    void deleteByWatermarkIdAndUser(Long id, User user);
+    int deleteByWatermarkIdAndUser(Long id, User user);
 
     Optional<Watermark> findByWatermarkIdAndUser(Long id, User user);
 
