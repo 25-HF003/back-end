@@ -6,6 +6,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.Map;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -20,6 +22,12 @@ public class FlaskResponseDTO {
 
     @JsonProperty("most_suspect_image")
     private String base64Url;
+
+    @JsonProperty("options_used")
+    private Map<String, Object> optionsUsed;
+
+    @JsonProperty("taskId")
+    private String taskId;
 
     private String imageUrl;
 }
