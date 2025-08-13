@@ -58,7 +58,7 @@ public class WatermarkControllerTest {
         Long id = 42L;
         WatermarkDTO dto = new WatermarkDTO(id, "original.jpg", "watermarked.jpg", LocalDateTime.parse("2024-01-01T00:00:00"));
 
-        Mockito.when(waterMarkService.getSingleResult(userId, id)).thenReturn(dto);
+        // Mockito.when(waterMarkService.getSingleResult(userId, id)).thenReturn(dto);
 
         // when & then
         mockMvc.perform(get("/watermark/{id}", id)

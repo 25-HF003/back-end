@@ -19,7 +19,6 @@ public class WatermarkDTO {
     public static WatermarkDTO fromEntity(Watermark entity){
         return WatermarkDTO.builder()
                 .id(entity.getWatermarkId())
-                .watermarkedFilePath(entity.getWatermarkedFilePath())
                 .fileName(entity.getFileName())
                 .createdAt(entity.getCreatedAt())
                 .build();
