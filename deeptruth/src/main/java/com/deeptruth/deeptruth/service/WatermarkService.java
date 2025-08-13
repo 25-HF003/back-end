@@ -100,11 +100,14 @@ public class WatermarkService {
         String wmKey   = baseKey + "watermarked.png";
         String msgKey  = baseKey + "message.txt";
 
+        String imageUrl = null;
+        String msgUrl = null;
+
         try (InputStream wmIs = new ByteArrayInputStream(watermarkedBytes);
              InputStream msgIs = new ByteArrayInputStream(message.getBytes(StandardCharsets.UTF_8))) {
 
-            amazonS3Service.uploadStream(wmIs, wmKey, "image/png");
-            amazonS3Service.uploadStream(msgIs, msgKey, "text/plain");
+            imageUrl = amazonS3Service.uploadStream(wmIs, wmKey, "image/png");
+            msgUrl = amazonS3Service.uploadStream(msgIs, msgKey, "text/plain");
         } catch (Exception e) {
             throw new StorageException("S3 업로드 실패", e);
         }
@@ -117,8 +120,8 @@ public class WatermarkService {
                 .sha256(sha256)
                 .normalizedSha256(normalizedSha256)
                 .phash(phash)
-                .s3WatermarkedKey(wmKey)
-                .s3MessageKey(msgKey)
+                .s3WatermarkedKey(imageUrl)
+                .s3MessageKey(msgUrl)
                 .fileName(flask.getFilename())
                 .createdAt(LocalDateTime.now())
                 .build();
@@ -128,8 +131,13 @@ public class WatermarkService {
         // 6) 응답
         return InsertResultDTO.builder()
                 .artifactId(artifactId)
-                .watermarkedKey(wmKey)
+                .fileName(flask.getFilename())
+                .s3WatermarkedKey(imageUrl)
                 .message(message)
+                .sha256(sha256)
+                .normalizedSha256(normalizedSha256)
+                .phash(phash)
+                .createdAt(LocalDateTime.now())
                 .build();
         }
   
