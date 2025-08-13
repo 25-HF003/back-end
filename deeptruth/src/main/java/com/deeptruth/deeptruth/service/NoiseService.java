@@ -80,23 +80,23 @@ public class NoiseService {
         final byte[] decodedBytes;
         try {
             decodedBytes = Base64.getDecoder().decode(cleanBase64);
-            log.info("✅ Base64 디코딩 성공, 크기: {} bytes", decodedBytes.length);
+            log.info("Base64 디코딩 성공, 크기: {} bytes", decodedBytes.length);
         } catch (IllegalArgumentException e) {
             String preview = base64Image.length() > 50 ? base64Image.substring(0, 50) + "..." : base64Image;
-            log.error("❌ 유효하지 않은 Base64 문자 발견: [{}]", preview);
+            log.error("유효하지 않은 Base64 문자 발견: [{}]", preview);
             throw new ImageDecodingException("Failed to decode Base64 image: Invalid Base64 characters detected");
         }
 
         try (InputStream inputStream = new ByteArrayInputStream(decodedBytes)) {
             String key = "noise/" + userId + "/" + type + "/" + UUID.randomUUID() + ".jpg";
             String result = amazonS3Service.uploadBase64Image(inputStream, key);
-            log.info("✅ S3 업로드 성공: {}", result);
+            log.info("S3 업로드 성공: {}", result);
             return result;
         } catch (IOException e) {
-            log.error("❌ InputStream 처리 실패: {}", e.getMessage());
+            log.error("InputStream 처리 실패: {}", e.getMessage());
             throw new StorageException("failed to process image stream", e);
         } catch (Exception e) {
-            log.error("❌ S3 업로드 실패: {}", e.getMessage());
+            log.error("S3 업로드 실패: {}", e.getMessage());
             throw new StorageException("failed to upload image to S3", e);
         }
     }
