@@ -1,24 +1,133 @@
 package com.deeptruth.deeptruth.service;
 
-import com.deeptruth.deeptruth.base.dto.noise.NoiseCreateRequestDTO;
 import com.deeptruth.deeptruth.base.dto.noise.NoiseDTO;
+import com.deeptruth.deeptruth.base.dto.noise.NoiseFlaskResponseDTO;
+import com.deeptruth.deeptruth.base.exception.*;
 import com.deeptruth.deeptruth.entity.Noise;
 import com.deeptruth.deeptruth.entity.User;
 import com.deeptruth.deeptruth.repository.NoiseRepository;
 import com.deeptruth.deeptruth.repository.UserRepository;
+import org.springframework.data.domain.Pageable;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Base64;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
+@Transactional
 @RequiredArgsConstructor
 public class NoiseService {
 
     private final NoiseRepository noiseRepository;
     private final UserRepository userRepository;
+    private final AmazonS3Service amazonS3Service;
+
+    public NoiseDTO createNoise(Long userId, NoiseFlaskResponseDTO dto) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException(userId));
+
+        // Flask 응답 검증
+        if (dto == null)
+            throw new InvalidNoiseResponseException("response is null");
+        if (dto.getAttackSuccess() == null)
+            throw new InvalidNoiseResponseException("attackSuccess is null");
+        if (dto.getOriginalFilePath() == null || dto.getOriginalFilePath().isBlank())
+            throw new InvalidNoiseResponseException("originalFilePath is blank");
+        if (dto.getProcessedFilePath() == null || dto.getProcessedFilePath().isBlank())
+            throw new InvalidNoiseResponseException("processedFilePath is blank");
+
+        log.info("📍 NoiseService - 받은 데이터:");
+        log.info("- originalFilePath: {}", dto.getOriginalFilePath().startsWith("http") ? "S3 URL" : "Base64");
+        log.info("- processedFilePath: {}", dto.getProcessedFilePath().startsWith("http") ? "S3 URL" : "Base64");
+
+        // Entity 생성 및 저장
+        Noise noise = Noise.builder()
+                .user(user)
+                .originalFilePath(dto.getOriginalFilePath())
+                .processedFilePath(dto.getProcessedFilePath())
+                .epsilon(dto.getEpsilon())
+                .attackSuccess(dto.getAttackSuccess())
+                .originalPrediction(dto.getOriginalPrediction())
+                .adversarialPrediction(dto.getAdversarialPrediction())
+                .build();
+
+        noiseRepository.save(noise);
+        return NoiseDTO.fromEntityWithFlaskData(noise, dto);
+    }
+
+    // S3 업로드 메소드
+    public String uploadBase64ImageToS3(String base64Image, Long userId, String type) {
+        if (base64Image == null || base64Image.isBlank()) {
+            throw new ImageDecodingException("empty string");
+        }
+
+        // data:image/png;base64, 제거
+        String cleanBase64 = base64Image;
+        if (base64Image.startsWith("data:image/")) {
+            cleanBase64 = base64Image.substring(base64Image.indexOf(",") + 1);
+        }
+
+        final byte[] decodedBytes;
+        try {
+            decodedBytes = Base64.getDecoder().decode(cleanBase64);
+            log.info("✅ Base64 디코딩 성공, 크기: {} bytes", decodedBytes.length);
+        } catch (IllegalArgumentException e) {
+            String preview = base64Image.length() > 50 ? base64Image.substring(0, 50) + "..." : base64Image;
+            log.error("❌ 유효하지 않은 Base64 문자 발견: [{}]", preview);
+            throw new ImageDecodingException("Failed to decode Base64 image: Invalid Base64 characters detected");
+        }
+
+        try (InputStream inputStream = new ByteArrayInputStream(decodedBytes)) {
+            String key = "noise/" + userId + "/" + type + "/" + UUID.randomUUID() + ".jpg";
+            String result = amazonS3Service.uploadBase64Image(inputStream, key);
+            log.info("✅ S3 업로드 성공: {}", result);
+            return result;
+        } catch (IOException e) {
+            log.error("❌ InputStream 처리 실패: {}", e.getMessage());
+            throw new StorageException("failed to process image stream", e);
+        } catch (Exception e) {
+            log.error("❌ S3 업로드 실패: {}", e.getMessage());
+            throw new StorageException("failed to upload image to S3", e);
+        }
+    }
+
+    public Page<NoiseDTO> getAllResult(Long userId, Pageable pageable) {
+        userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException(userId));
+
+        return noiseRepository.findByUser_UserId(userId, pageable)
+                .map(NoiseDTO::fromEntity);
+    }
+
+    public NoiseDTO getSingleResult(Long userId, Long noiseId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException(userId));
+
+        Noise noise = noiseRepository.findByNoiseIdAndUser(noiseId, user)
+                .orElseThrow(() -> new NoiseNotFoundException(noiseId, userId));
+
+        return NoiseDTO.fromEntity(noise);
+    }
+
+    public void deleteResult(Long userId, Long noiseId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException(userId));
+
+        int deleted = noiseRepository.deleteByNoiseIdAndUser(noiseId, user);
+        if (deleted == 0) {
+            throw new NoiseNotFoundException(noiseId, userId);
+        }
+    }
 
     public List<NoiseDTO> getUserNoiseHistory(Long userId) {
         if (!userRepository.existsById(userId)) {
@@ -29,80 +138,5 @@ public class NoiseService {
         return noises.stream()
                 .map(NoiseDTO::fromEntity)
                 .collect(Collectors.toList());
-    }
-
-
-    @Transactional
-    public NoiseDTO createNoise(Long userId, NoiseCreateRequestDTO request) {
-        // 요청 데이터 검증
-        request.validate();
-
-        // User 엔티티 조회
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
-
-        // 처리된 파일 경로 생성
-        String processedFilePath = generateProcessedFilePath(request.getOriginalFilePath());
-
-        // Noise 엔티티 생성
-        Noise noise = Noise.builder()
-                .user(user)
-                .originalFilePath(request.getOriginalFilePath())
-                .processedFilePath(processedFilePath)
-                .epsilon(request.getEpsilon())
-                .build();
-
-        // DB 저장
-        Noise savedNoise = noiseRepository.save(noise);
-
-        // DTO 변환 후 반환
-        return NoiseDTO.fromEntity(savedNoise);
-    }
-
-    // 임시 구현
-    private String generateProcessedFilePath(String originalFilePath) {
-        return originalFilePath.replace("/original/", "/processed/")
-                .replace(".jpg", "_noised.jpg")
-                .replace(".png", "_noised.png");
-    }
-
-    // 노이즈 개별 조회 (권한 검증 포함)
-    @Transactional(readOnly = true)
-    public NoiseDTO getNoiseById(Long userId, Long noiseId) {
-        // 사용자 존재 확인
-        if (!userRepository.existsById(userId)) {
-            throw new IllegalArgumentException("사용자를 찾을 수 없습니다.");
-        }
-
-        // 노이즈 조회
-        Noise noise = noiseRepository.findById(noiseId)
-                .orElseThrow(() -> new IllegalArgumentException("노이즈를 찾을 수 없습니다."));
-
-        // 권한 검증 (본인의 노이즈인지 확인)
-        if (!noise.getUser().getUserId().equals(userId)) {
-            throw new IllegalArgumentException("접근 권한이 없습니다.");
-        }
-
-        return NoiseDTO.fromEntity(noise);
-    }
-
-    @Transactional
-    public void deleteNoise(Long userId, Long noiseId) {
-        // 1. 사용자 존재 확인
-        if (!userRepository.existsById(userId)) {
-            throw new IllegalArgumentException("사용자를 찾을 수 없습니다.");
-        }
-
-        // 2. 노이즈 조회
-        Noise noise = noiseRepository.findById(noiseId)
-                .orElseThrow(() -> new IllegalArgumentException("노이즈를 찾을 수 없습니다."));
-
-        // 3. 권한 확인 (본인의 노이즈인지)
-        if (!noise.getUser().getUserId().equals(userId)) {
-            throw new IllegalArgumentException("접근 권한이 없습니다.");
-        }
-
-        // 4. 삭제 실행
-        noiseRepository.delete(noise);
     }
 }
