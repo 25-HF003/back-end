@@ -141,18 +141,18 @@ public class WatermarkService {
                 .build();
         }
   
-    public Page<WatermarkDTO> getAllResult(Long userId, Pageable pageable){
+    public Page<InsertResultDTO> getAllResult(Long userId, Pageable pageable){
         userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException(userId));
         return watermarkRepository.findByUser_UserId(userId, pageable)
-                .map(WatermarkDTO::fromEntity);
+                .map(InsertResultDTO::fromEntity);
     }
 
-    public WatermarkDTO getSingleResult(Long userId, Long id){
+    public InsertResultDTO getSingleResult(Long userId, Long id){
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException(userId));
         Watermark mark = watermarkRepository.findByWatermarkIdAndUser(id, user).orElseThrow();
 
-        return WatermarkDTO.fromEntity(mark);
+        return InsertResultDTO.fromEntity(mark);
     }
 
     public void deleteWatermark(Long userId, Long id){

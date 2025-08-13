@@ -59,7 +59,7 @@ public class WatermarkController {
     public ResponseEntity<ResponseDTO> getAllWatermarks(@AuthenticationPrincipal User user, @PageableDefault(size = 15, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable){
 
 
-        Page<WatermarkDTO> result = waterMarkService.getAllResult(user.getUserId(), pageable);
+        Page<InsertResultDTO> result = waterMarkService.getAllResult(user.getUserId(), pageable);
         return ResponseEntity.ok(
                 ResponseDTO.success(200, "워터마크 삽입 기록 전체 조회 성공", result)
         );
@@ -69,7 +69,7 @@ public class WatermarkController {
     @GetMapping("/{id}")
     public ResponseEntity<ResponseDTO> getWatermark(@PathVariable Long id, @AuthenticationPrincipal User user){
 
-        WatermarkDTO result = waterMarkService.getSingleResult(user.getUserId(), id);
+        InsertResultDTO result = waterMarkService.getSingleResult(user.getUserId(), id);
         return ResponseEntity.ok(ResponseDTO.success(200, "워터마크 삽입 기록 조회 성공", result));
     }
 

@@ -1,5 +1,6 @@
 package com.deeptruth.deeptruth.base.dto.watermark;
 
+import com.deeptruth.deeptruth.entity.Watermark;
 import lombok.Builder;
 import lombok.Data;
 
@@ -17,4 +18,16 @@ public class InsertResultDTO {
     private Long phash;
     private LocalDateTime createdAt;
 
+    public static InsertResultDTO fromEntity(Watermark entity){
+        return InsertResultDTO.builder()
+                .artifactId(entity.getArtifactId())
+                .fileName(entity.getFileName())
+                .s3WatermarkedKey(entity.getS3WatermarkedKey())
+                .message(entity.getMessage())
+                .sha256(entity.getSha256())
+                .normalizedSha256(entity.getNormalizedSha256())
+                .phash(entity.getPhash())
+                .createdAt(entity.getCreatedAt())
+                .build();
+    }
 }
