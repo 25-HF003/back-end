@@ -80,4 +80,8 @@ public class ImageHashUtils {
         int m = b.length / 2;
         return (b.length % 2 == 0) ? (b[m - 1] + b[m]) / 2.0 : b[m];
     }
+
+    public static int hammingDistance(long hash1, long hash2) {
+        return Long.bitCount(hash1 ^ hash2);
+    }
 }
