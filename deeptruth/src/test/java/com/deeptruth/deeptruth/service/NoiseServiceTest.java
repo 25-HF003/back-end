@@ -1,31 +1,38 @@
 package com.deeptruth.deeptruth.service;
 
-import com.deeptruth.deeptruth.base.dto.noise.NoiseCreateRequestDTO;
-import com.deeptruth.deeptruth.entity.Noise;
 import com.deeptruth.deeptruth.base.dto.noise.NoiseDTO;
+import com.deeptruth.deeptruth.base.dto.noise.NoiseFlaskResponseDTO;
+import com.deeptruth.deeptruth.base.exception.ImageDecodingException;
+import com.deeptruth.deeptruth.base.exception.NoiseNotFoundException;
+import com.deeptruth.deeptruth.base.exception.UserNotFoundException;
+import com.deeptruth.deeptruth.entity.Noise;
 import com.deeptruth.deeptruth.entity.User;
 import com.deeptruth.deeptruth.repository.NoiseRepository;
 import com.deeptruth.deeptruth.repository.UserRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Pageable;
 
-import java.time.LocalDateTime;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("NoiseService 단위 테스트")
+@Transactional
 class NoiseServiceTest {
 
     @InjectMocks
@@ -36,6 +43,45 @@ class NoiseServiceTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private AmazonS3Service amazonS3Service;
+
+    private User testUser;
+    private NoiseFlaskResponseDTO testFlaskResponse;
+    private Noise testNoise;
+
+    @BeforeEach
+    void setUp() {
+        testUser = User.builder()
+                .userId(1L)
+                .email("test@example.com")
+                .build();
+
+        testFlaskResponse = NoiseFlaskResponseDTO.builder()
+                .originalFilePath("https://s3.amazonaws.com/original.jpg")
+                .processedFilePath("https://s3.amazonaws.com/processed.jpg")
+                .epsilon(0.05F)
+                .attackSuccess(true)
+                .originalPrediction("High Renaissance")
+                .adversarialPrediction("Surrealism")
+                .originalConfidence("0.543")
+                .adversarialConfidence("0.143")
+                .confidenceDrop("40.0%")
+                .message("적대적 노이즈 생성 완료")
+                .build();
+
+        testNoise = Noise.builder()
+                .noiseId(1L)
+                .user(testUser)
+                .originalFilePath("https://s3.amazonaws.com/original.jpg")
+                .processedFilePath("https://s3.amazonaws.com/processed.jpg")
+                .epsilon(0.05F)
+                .attackSuccess(true)
+                .originalPrediction("High Renaissance")
+                .adversarialPrediction("Surrealism")
+                .build();
+    }
 
     @Test
     @DisplayName("존재하지 않는 사용자로 노이즈 이력 조회 시 예외 발생")
@@ -52,6 +98,149 @@ class NoiseServiceTest {
         verify(noiseRepository, never()).findAllByUser_UserId(anyLong());
     }
 
+    @Test
+    @DisplayName("적대적 노이즈 생성 성공 테스트")
+    void 적대적노이즈생성_성공테스트() {
+        // given: Flask 응답 DTO와 사용자 정보
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+        when(noiseRepository.save(any(Noise.class))).thenReturn(testNoise);
+
+        // when
+        NoiseDTO result = noiseService.createNoise(1L, testFlaskResponse);
+
+        // then
+        assertThat(result).isNotNull();
+        assertThat(result.getOriginalFilePath()).isEqualTo("https://s3.amazonaws.com/original.jpg");
+        assertThat(result.getProcessedFilePath()).isEqualTo("https://s3.amazonaws.com/processed.jpg");
+        assertThat(result.getAttackSuccess()).isTrue();
+        assertThat(result.getOriginalPrediction()).isEqualTo("High Renaissance");
+        assertThat(result.getAdversarialPrediction()).isEqualTo("Surrealism");
+
+        verify(userRepository).findById(1L);
+        verify(noiseRepository).save(any(Noise.class));
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 사용자로 노이즈 생성 시 예외 발생")
+    void 적대적노이즈생성_사용자없음_예외발생() {
+        // given
+        when(userRepository.findById(999L)).thenReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> noiseService.createNoise(999L, testFlaskResponse))
+                .isInstanceOf(UserNotFoundException.class);
+
+        verify(userRepository).findById(999L);
+        verify(noiseRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Base64 이미지 S3 업로드 성공 테스트")
+    void Base64이미지_S3업로드_성공테스트() {
+        // given
+        String validBase64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==";
+        String expectedS3Url = "https://s3.amazonaws.com/test-image.jpg";
+
+        when(amazonS3Service.uploadBase64Image(any(), anyString()))
+                .thenReturn(expectedS3Url);
+
+        // when
+        String result = noiseService.uploadBase64ImageToS3(validBase64, 1L, "test");
+
+        // then
+        assertThat(result).isEqualTo(expectedS3Url);
+        verify(amazonS3Service).uploadBase64Image(any(), contains("noise/1/test/"));
+    }
+
+    @Test
+    @DisplayName("잘못된 Base64 데이터로 인한 예외 테스트")
+    void Base64이미지업로드_잘못된데이터_예외발생() {
+        // given
+        String invalidBase64 = "invalid-base64-data!!!";
+
+        // when & then
+        assertThatThrownBy(() -> noiseService.uploadBase64ImageToS3(invalidBase64, 1L, "test"))
+                .isInstanceOf(ImageDecodingException.class)
+                .hasMessageContaining("Invalid Base64 characters detected");
+
+        verify(amazonS3Service, never()).uploadBase64Image(any(), any());
+    }
+
+    @Test
+    @DisplayName("빈 Base64 문자열로 인한 예외 테스트")
+    void Base64이미지업로드_빈문자열_예외발생() {
+        // given
+        String emptyBase64 = "";
+
+        // when & then
+        assertThatThrownBy(() -> noiseService.uploadBase64ImageToS3(emptyBase64, 1L, "test"))
+                .isInstanceOf(ImageDecodingException.class)
+                .hasMessageContaining("empty string");
+    }
+
+    @Test
+    @DisplayName("사용자별 노이즈 목록 조회 테스트")
+    void 사용자별노이즈목록조회_성공테스트() {
+        // given
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<Noise> noisePage = new PageImpl<>(List.of(testNoise));
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+        when(noiseRepository.findByUser_UserId(1L, pageable)).thenReturn(noisePage);
+
+        // when
+        Page<NoiseDTO> result = noiseService.getAllResult(1L, pageable);
+
+        // then
+        assertThat(result).isNotNull();
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0).getNoiseId()).isEqualTo(1L);
+
+        verify(userRepository).findById(1L);
+        verify(noiseRepository).findByUser_UserId(1L, pageable);
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 노이즈 조회 시 예외 테스트")
+    void 개별노이즈조회_존재하지않음_예외발생() {
+        // given
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+        when(noiseRepository.findByNoiseIdAndUser(999L, testUser)).thenReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> noiseService.getSingleResult(1L, 999L))
+                .isInstanceOf(NoiseNotFoundException.class);
+
+        verify(userRepository).findById(1L);
+        verify(noiseRepository).findByNoiseIdAndUser(999L, testUser);
+    }
+
+    @Test
+    @DisplayName("노이즈 삭제 성공 테스트")
+    void 노이즈삭제_성공테스트() {
+        // given
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+        when(noiseRepository.deleteByNoiseIdAndUser(1L, testUser)).thenReturn(1);
+
+        // when & then
+        assertThatNoException().isThrownBy(() -> noiseService.deleteResult(1L, 1L));
+
+        verify(userRepository).findById(1L);
+        verify(noiseRepository).deleteByNoiseIdAndUser(1L, testUser);
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 노이즈 삭제 시 예외 테스트")
+    void 노이즈삭제_존재하지않음_예외발생() {
+        // given
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+        when(noiseRepository.deleteByNoiseIdAndUser(999L, testUser)).thenReturn(0);
+
+        // when & then
+        assertThatThrownBy(() -> noiseService.deleteResult(1L, 999L))
+                .isInstanceOf(NoiseNotFoundException.class);
+    }
+/*
     @Test
     @DisplayName("사용자 노이즈 이력 조회 성공")
     void 사용자_노이즈_이력_조회_성공() {
@@ -349,6 +538,6 @@ class NoiseServiceTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("접근 권한이 없습니다.");
     }
-
+*/
 
 }

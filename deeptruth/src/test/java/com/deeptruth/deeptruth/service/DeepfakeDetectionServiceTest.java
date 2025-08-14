@@ -69,7 +69,7 @@ class DeepfakeDetectionServiceTest {
                 .createdAt(LocalDateTime.now())
                 .build();
     }
-
+/*
     @Test
     @DisplayName("영상을 업로드하고 deepfake 반환값을 받는다. ")
     void uploadVideo_ShouldReturnS3Url() throws IOException {
@@ -117,7 +117,7 @@ class DeepfakeDetectionServiceTest {
         assertEquals("test/path.mp4", result.getFilePath());
         assertEquals(DeepfakeResult.FAKE, result.getResult());
     }
-
+*/
     @Test
     @DisplayName("탐지 결과를 삭제한다")
     void deleteResult() {

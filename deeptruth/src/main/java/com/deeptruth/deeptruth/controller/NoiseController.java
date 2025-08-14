@@ -1,16 +1,27 @@
 package com.deeptruth.deeptruth.controller;
 
-import com.deeptruth.deeptruth.base.dto.noise.NoiseCreateRequestDTO;
 import com.deeptruth.deeptruth.base.dto.noise.NoiseDTO;
+import com.deeptruth.deeptruth.base.dto.noise.NoiseFlaskResponseDTO;
 import com.deeptruth.deeptruth.base.dto.response.ResponseDTO;
 import com.deeptruth.deeptruth.entity.User;
 import com.deeptruth.deeptruth.service.NoiseService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.reactive.function.BodyInserters;
+import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 
 import java.util.List;
 
@@ -21,64 +32,89 @@ import java.util.List;
 public class NoiseController {
 
     private final NoiseService noiseService;
+    private final WebClient webClient;
 
-    @GetMapping("/history")
-    public ResponseEntity<ResponseDTO<List<NoiseDTO>>> getMyNoiseHistory(
-            @AuthenticationPrincipal User user) {
+    @Value("${flask.noiseServer.url}")
+    private String flaskServerUrl; // http://localhost:5002
+
+    @PostMapping
+    public ResponseEntity<ResponseDTO<NoiseDTO>> createNoise(
+            @AuthenticationPrincipal User user,
+            @RequestPart("file") MultipartFile multipartFile) {
         try {
             if (user == null) {
                 return ResponseEntity.status(401)
                         .body(ResponseDTO.fail(401, "인증이 필요합니다."));
             }
 
-            Long userId = user.getUserId();
-            String userName = user.getName();
+            if (multipartFile.isEmpty()) {
+                return ResponseEntity.status(400)
+                        .body(ResponseDTO.fail(400, "파일이 비어있습니다."));
+            }
 
-            log.info("사용자 ID {}의 노이즈 이력 조회 요청", userId);
+            // Flask 호출
+            ByteArrayResource resource = new ByteArrayResource(multipartFile.getBytes()) {
+                @Override
+                public String getFilename() {
+                    return multipartFile.getOriginalFilename();
+                }
+            };
 
-            List<NoiseDTO> history = noiseService.getUserNoiseHistory(userId);
+            MultiValueMap<String, Object> form = new LinkedMultiValueMap<>();
+            form.add("file", resource);
 
-            return ResponseEntity.ok(
-                    ResponseDTO.success(200, "노이즈 삽입 이력 조회 성공", history));
+            // Flask API 호출
+            NoiseFlaskResponseDTO flaskResult = webClient.post()
+                    .uri(flaskServerUrl + "/upload")
+                    .contentType(MediaType.MULTIPART_FORM_DATA)
+                    .body(BodyInserters.fromMultipartData(form))
+                    .retrieve()
+                    .bodyToMono(NoiseFlaskResponseDTO.class)
+                    .block();
+
+            if (flaskResult == null) {
+                return ResponseEntity.status(500)
+                        .body(ResponseDTO.fail(500, "Flask 서버 응답 실패"));
+            }
+
+            // S3 업로드
+            if (flaskResult.getOriginalFilePath() != null &&
+                    flaskResult.getOriginalFilePath().startsWith("data:image/")) {
+
+                String originalUrl = noiseService.uploadBase64ImageToS3(
+                        flaskResult.getOriginalFilePath(), user.getUserId(), "original");
+                flaskResult.setOriginalFilePath(originalUrl);
+            }
+
+            if (flaskResult.getProcessedFilePath() != null &&
+                    flaskResult.getProcessedFilePath().startsWith("data:image/")) {
+
+                String processedUrl = noiseService.uploadBase64ImageToS3(
+                        flaskResult.getProcessedFilePath(), user.getUserId(), "processed");
+                flaskResult.setProcessedFilePath(processedUrl);
+            }
+
+            // Service 호출
+            NoiseDTO createdNoise = noiseService.createNoise(user.getUserId(), flaskResult);
+
+            return ResponseEntity.ok(ResponseDTO.success(200, "적대적 노이즈 생성 성공", createdNoise));
+
         } catch (Exception e) {
-            log.error("노이즈 이력 조회 중 오류 발생: ", e);
+            log.error("❌ 적대적 노이즈 생성 중 오류 발생: ", e);
             return ResponseEntity.status(500)
                     .body(ResponseDTO.fail(500, "서버 오류: " + e.getMessage()));
         }
     }
 
-    @PostMapping
-    public ResponseEntity<ResponseDTO<NoiseDTO>> createNoise(
+    @GetMapping
+    public ResponseEntity<ResponseDTO<Page<NoiseDTO>>> getAllNoises(
             @AuthenticationPrincipal User user,
-            @RequestBody NoiseCreateRequestDTO request) {
-        try {
-            if (user == null) {
-                return ResponseEntity.status(401)
-                        .body(ResponseDTO.fail(401, "인증이 필요합니다."));
-            }
+            @PageableDefault(size = 15, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
 
-            Long userId = user.getUserId();
-            String userName = user.getName();
-
-            log.info("사용자 ID {}의 노이즈 생성 요청: epsilon={}",
-                    userId, request.getEpsilon());
-
-            NoiseDTO createdNoise = noiseService.createNoise(userId, request);
-
-            // 성공 응답 반환
-            return ResponseEntity.status(201)
-                    .body(ResponseDTO.success(201, "노이즈 생성 성공", createdNoise));
-
-        } catch (IllegalArgumentException e) {
-            // 클라이언트 오류 (400)
-            return ResponseEntity.status(400)
-                    .body(ResponseDTO.fail(400, e.getMessage()));
-        } catch (Exception e) {
-            // 서버 오류 로깅 및 응답
-            log.error("노이즈 생성 중 오류 발생: ", e);
-            return ResponseEntity.status(500)
-                    .body(ResponseDTO.fail(500, "서버 오류: " + e.getMessage()));
-        }
+        Page<NoiseDTO> result = noiseService.getAllResult(user.getUserId(), pageable);
+        return ResponseEntity.ok(
+                ResponseDTO.success(200, "적대적 노이즈 기록 전체 조회 성공", result)
+        );
     }
 
     @GetMapping("/{noiseId}")
@@ -86,19 +122,9 @@ public class NoiseController {
             @AuthenticationPrincipal User user,
             @PathVariable Long noiseId) {
         try {
-            if (user == null) {
-                return ResponseEntity.status(401)
-                        .body(ResponseDTO.fail(401, "인증이 필요합니다."));
-            }
-
-            NoiseDTO noise = noiseService.getNoiseById(user.getUserId(), noiseId);
-
+            NoiseDTO noise = noiseService.getSingleResult(user.getUserId(), noiseId);
             return ResponseEntity.ok(
-                    ResponseDTO.success(200, "노이즈 조회 성공", noise));
-
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(404)
-                    .body(ResponseDTO.fail(404, e.getMessage()));
+                    ResponseDTO.success(200, "적대적 노이즈 조회 성공", noise));
         } catch (Exception e) {
             log.error("노이즈 조회 중 오류 발생: ", e);
             return ResponseEntity.status(500)
@@ -111,25 +137,27 @@ public class NoiseController {
             @AuthenticationPrincipal User user,
             @PathVariable Long noiseId) {
         try {
-            if (user == null) {
-                return ResponseEntity.status(401)
-                        .body(ResponseDTO.fail(401, "인증이 필요합니다."));
-            }
-
-            noiseService.deleteNoise(user.getUserId(), noiseId);
-
+            noiseService.deleteResult(user.getUserId(), noiseId);
             return ResponseEntity.ok(
-                    ResponseDTO.success(200, "노이즈 삭제 성공", null));
-
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(404)
-                    .body(ResponseDTO.fail(404, e.getMessage()));
+                    ResponseDTO.success(200, "적대적 노이즈 삭제 성공", null));
         } catch (Exception e) {
-            log.error("노이즈 삭제 중 오류 발생: ", e);
+            log.error("적대적 노이즈 삭제 중 오류 발생: ", e);
             return ResponseEntity.status(500)
                     .body(ResponseDTO.fail(500, "서버 오류: " + e.getMessage()));
         }
     }
 
-
+    @GetMapping("/history")
+    public ResponseEntity<ResponseDTO<List<NoiseDTO>>> getMyNoiseHistory(
+            @AuthenticationPrincipal User user) {
+        try {
+            List<NoiseDTO> history = noiseService.getUserNoiseHistory(user.getUserId());
+            return ResponseEntity.ok(
+                    ResponseDTO.success(200, "적대적 노이즈 삽입 이력 조회 성공", history));
+        } catch (Exception e) {
+            log.error("적대적 노이즈 이력 조회 중 오류 발생: ", e);
+            return ResponseEntity.status(500)
+                    .body(ResponseDTO.fail(500, "서버 오류: " + e.getMessage()));
+        }
+    }
 }

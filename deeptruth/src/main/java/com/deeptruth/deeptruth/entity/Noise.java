@@ -30,6 +30,15 @@ public class Noise {
     @Column
     private Float epsilon = 0.03F;
 
+    @Column
+    private Boolean attackSuccess; // 공격 성공 여부
+
+    @Column
+    private String originalPrediction; // 기존 이미지 예측
+
+    @Column
+    private String adversarialPrediction; // 적대적 노이즈 적용 후 이미지 예측
+
     @Column(nullable=false, updatable = false)
     private LocalDateTime createdAt;
 
