@@ -9,6 +9,7 @@ import java.time.LocalDateTime;
 @Data
 @Builder
 public class InsertResultDTO {
+    private Long watermarkId;
     private String artifactId;
     private String fileName;
     private String s3WatermarkedKey;
@@ -20,6 +21,7 @@ public class InsertResultDTO {
 
     public static InsertResultDTO fromEntity(Watermark entity){
         return InsertResultDTO.builder()
+                .watermarkId(entity.getWatermarkId())
                 .artifactId(entity.getArtifactId())
                 .fileName(entity.getFileName())
                 .s3WatermarkedKey(entity.getS3WatermarkedKey())
