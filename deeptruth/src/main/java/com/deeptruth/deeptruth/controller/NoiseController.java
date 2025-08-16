@@ -80,24 +80,20 @@ public class NoiseController {
             // S3 업로드
             if (flaskResult.getOriginalFilePath() != null &&
                     flaskResult.getOriginalFilePath().startsWith("data:image/")) {
-
                 String originalUrl = noiseService.uploadBase64ImageToS3(
-                        flaskResult.getOriginalFilePath(), user.getUserId(), "original");
+                        flaskResult.getOriginalFilePath(), user.getUserId(), "original", multipartFile.getOriginalFilename());
                 flaskResult.setOriginalFilePath(originalUrl);
             }
-
             if (flaskResult.getProcessedFilePath() != null &&
                     flaskResult.getProcessedFilePath().startsWith("data:image/")) {
-
                 String processedUrl = noiseService.uploadBase64ImageToS3(
-                        flaskResult.getProcessedFilePath(), user.getUserId(), "processed");
+                        flaskResult.getProcessedFilePath(), user.getUserId(), "processed", multipartFile.getOriginalFilename());
                 flaskResult.setProcessedFilePath(processedUrl);
             }
-
             // Service 호출
-            NoiseDTO createdNoise = noiseService.createNoise(user.getUserId(), flaskResult);
+            NoiseDTO createdNoise = noiseService.createNoise(user.getUserId(), flaskResult, multipartFile.getOriginalFilename());;
 
-            return ResponseEntity.ok(ResponseDTO.success(200, "적대적 노이즈 생성 성공", createdNoise));
+            return ResponseEntity.ok(ResponseDTO.success(200, "적대적 노이즈 삽입 성공", createdNoise));
 
         } catch (Exception e) {
             log.error("❌ 적대적 노이즈 생성 중 오류 발생: ", e);
