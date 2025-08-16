@@ -32,7 +32,7 @@ public class NoiseService {
     private final UserRepository userRepository;
     private final AmazonS3Service amazonS3Service;
 
-    public NoiseDTO createNoise(Long userId, NoiseFlaskResponseDTO dto) {
+    public NoiseDTO createNoise(Long userId, NoiseFlaskResponseDTO dto, String originFileName) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException(userId));
 
@@ -50,9 +50,13 @@ public class NoiseService {
         log.info("- originalFilePath: {}", dto.getOriginalFilePath().startsWith("http") ? "S3 URL" : "Base64");
         log.info("- processedFilePath: {}", dto.getProcessedFilePath().startsWith("http") ? "S3 URL" : "Base64");
 
+        String userFileName = generateFileName(originFileName);
+
         // Entity 생성 및 저장
         Noise noise = Noise.builder()
                 .user(user)
+                .originalFileName(originFileName)  // 원본 파일명
+                .fileName(userFileName)  // 저장용 파일명
                 .originalFilePath(dto.getOriginalFilePath())
                 .processedFilePath(dto.getProcessedFilePath())
                 .epsilon(dto.getEpsilon())
@@ -66,7 +70,7 @@ public class NoiseService {
     }
 
     // S3 업로드 메소드
-    public String uploadBase64ImageToS3(String base64Image, Long userId, String type) {
+    public String uploadBase64ImageToS3(String base64Image, Long userId, String type, String originalFileName) {
         if (base64Image == null || base64Image.isBlank()) {
             throw new ImageDecodingException("empty string");
         }
@@ -88,6 +92,7 @@ public class NoiseService {
         }
 
         try (InputStream inputStream = new ByteArrayInputStream(decodedBytes)) {
+            // S3에는 UUID로 저장 (충돌 방지)
             String key = "noise/" + userId + "/" + type + "/" + UUID.randomUUID() + ".jpg";
             String result = amazonS3Service.uploadBase64Image(inputStream, key);
             log.info("S3 업로드 성공: {}", result);
@@ -138,5 +143,24 @@ public class NoiseService {
         return noises.stream()
                 .map(NoiseDTO::fromEntity)
                 .collect(Collectors.toList());
+    }
+
+    private String generateFileName(String originalFileName) {
+        if (originalFileName == null || originalFileName.isBlank()) {
+            return "noise_result.jpg";  // 기본값
+        }
+
+        // 확장자 제거
+        String baseName = originalFileName.replaceFirst("[.][^.]+$", "");
+
+        // 특수문자 제거 및 정규화
+        baseName = baseName.replaceAll("[^a-zA-Z0-9_-]", "_");
+
+        // 파일명이 너무 길면 자르기 (15자 제한)
+        if (baseName.length() > 15) {
+            baseName = baseName.substring(0, 15);
+        }
+
+        return baseName + "_noise.jpg";
     }
 }

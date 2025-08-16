@@ -11,6 +11,8 @@ import java.time.LocalDateTime;
 public class NoiseDTO {
     private Long noiseId;
     private Long userId;
+    private String fileName;
+    private String originalFileName;
     private String originalFilePath;
     private String processedFilePath;
     private Float epsilon;
@@ -30,6 +32,8 @@ public class NoiseDTO {
         return NoiseDTO.builder()
                 .noiseId(entity.getNoiseId())
                 .userId(entity.getUser().getUserId())
+                .fileName(entity.getFileName())
+                .originalFileName(entity.getOriginalFileName())
                 .originalFilePath(entity.getOriginalFilePath())
                 .processedFilePath(entity.getProcessedFilePath())
                 .epsilon(entity.getEpsilon())
@@ -45,6 +49,8 @@ public class NoiseDTO {
         return NoiseDTO.builder()
                 .noiseId(entity.getNoiseId())
                 .userId(entity.getUser().getUserId())
+                .fileName(entity.getFileName())
+                .originalFileName(entity.getOriginalFileName())
                 .originalFilePath(entity.getOriginalFilePath())
                 .processedFilePath(entity.getProcessedFilePath())
                 .epsilon(entity.getEpsilon())
@@ -67,4 +73,5 @@ public class NoiseDTO {
         }
         return null;
     }
+
 }

@@ -21,6 +21,12 @@ public class Noise {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @Column
+    private String originalFileName;  // 원본 파일명
+
+    @Column
+    private String fileName;          // 저장용 파일명
+
     @Column(nullable=false, length = 255)
     private String originalFilePath;
 
