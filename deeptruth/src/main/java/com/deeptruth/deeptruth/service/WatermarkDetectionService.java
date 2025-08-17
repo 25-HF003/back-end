@@ -121,6 +121,7 @@ public class WatermarkDetectionService {
                 .bitAccuracy(flask.getBit_accuracy())
                 .detectedAt(flask.getDetected_at())
                 .uploadedImageBase64(flask.getImage_base64()) // 임계 미달 시에만 세팅됨
+                .basename(flask.getBasename())
                 .build();
     }
 }
