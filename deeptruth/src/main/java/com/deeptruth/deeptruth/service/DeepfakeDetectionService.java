@@ -1,5 +1,7 @@
 package com.deeptruth.deeptruth.service;
 
+import com.deeptruth.deeptruth.base.Enum.DeepfakeDetector;
+import com.deeptruth.deeptruth.base.Enum.DeepfakeMode;
 import com.deeptruth.deeptruth.base.Enum.DeepfakeResult;
 import com.deeptruth.deeptruth.base.dto.deepfake.DeepfakeDetectionDTO;
 import com.deeptruth.deeptruth.base.dto.deepfake.FlaskResponseDTO;
@@ -57,6 +59,13 @@ public class DeepfakeDetectionService {
                 .result(dto.getResult())
                 .averageConfidence(dto.getAverageConfidence())
                 .maxConfidence(dto.getMaxConfidence())
+                .mode(DeepfakeMode.valueOf(dto.getMode().toUpperCase()))
+                .useTta(dto.getUseTta())
+                .useIllum(dto.getUseIllum())
+                .detector(DeepfakeDetector.valueOf(dto.getDetector().toUpperCase()))
+                .smoothWindow(dto.getSmoothWindow())
+                .minFace(dto.getMinFace())
+                .sampleCount(dto.getSampleCount())
                 .build();
 
         deepfakeDetectionRepository.save(detection);
