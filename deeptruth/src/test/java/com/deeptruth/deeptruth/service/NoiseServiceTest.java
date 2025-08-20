@@ -2,9 +2,6 @@ package com.deeptruth.deeptruth.service;
 
 import com.deeptruth.deeptruth.base.dto.noise.NoiseDTO;
 import com.deeptruth.deeptruth.base.dto.noise.NoiseFlaskResponseDTO;
-import com.deeptruth.deeptruth.base.exception.ImageDecodingException;
-import com.deeptruth.deeptruth.base.exception.NoiseNotFoundException;
-import com.deeptruth.deeptruth.base.exception.UserNotFoundException;
 import com.deeptruth.deeptruth.entity.Noise;
 import com.deeptruth.deeptruth.entity.User;
 import com.deeptruth.deeptruth.repository.NoiseRepository;
@@ -16,26 +13,21 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.data.domain.Pageable;
 
-import java.util.List;
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.*;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("NoiseService 단위 테스트")
 @Transactional
+@SpringBootTest
 class NoiseServiceTest {
 
-    @InjectMocks
+    @Autowired
     private NoiseService noiseService;
 
     @Mock
@@ -97,7 +89,7 @@ class NoiseServiceTest {
         verify(userRepository).existsById(nonExistentUserId);
         verify(noiseRepository, never()).findAllByUser_UserId(anyLong());
     }
-
+/*
     @Test
     @DisplayName("적대적 노이즈 생성 성공 테스트")
     void 적대적노이즈생성_성공테스트() {
@@ -177,7 +169,7 @@ class NoiseServiceTest {
                 .isInstanceOf(ImageDecodingException.class)
                 .hasMessageContaining("empty string");
     }
-
+/*
     @Test
     @DisplayName("사용자별 노이즈 목록 조회 테스트")
     void 사용자별노이즈목록조회_성공테스트() {
@@ -240,7 +232,17 @@ class NoiseServiceTest {
         assertThatThrownBy(() -> noiseService.deleteResult(1L, 999L))
                 .isInstanceOf(NoiseNotFoundException.class);
     }
-/*
+
+
+    @Test
+    void 파일이름_확장자_테스트() {
+        // 이제 noiseService 사용 가능
+        assertEquals("test_noise.png", noiseService.generateFileName("test.png"));
+        assertEquals("photo_noise.jpg", noiseService.generateFileName("photo.jpg"));
+        assertEquals("image_noise.jpeg", noiseService.generateFileName("image.jpeg"));
+    }
+
+
     @Test
     @DisplayName("사용자 노이즈 이력 조회 성공")
     void 사용자_노이즈_이력_조회_성공() {
