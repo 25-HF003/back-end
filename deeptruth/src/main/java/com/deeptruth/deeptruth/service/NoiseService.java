@@ -63,6 +63,8 @@ public class NoiseService {
                 .attackSuccess(dto.getAttackSuccess())
                 .originalPrediction(dto.getOriginalPrediction())
                 .adversarialPrediction(dto.getAdversarialPrediction())
+                .originalConfidence(dto.getOriginalConfidence())
+                .adversarialConfidence(dto.getAdversarialConfidence())
                 .build();
 
         noiseRepository.save(noise);

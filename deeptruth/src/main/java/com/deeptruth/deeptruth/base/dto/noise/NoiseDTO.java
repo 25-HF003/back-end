@@ -41,6 +41,8 @@ public class NoiseDTO {
                 .attackSuccess(entity.getAttackSuccess())
                 .originalPrediction(entity.getOriginalPrediction())
                 .adversarialPrediction(entity.getAdversarialPrediction())
+                .originalConfidence(entity.getOriginalConfidence())
+                .adversarialConfidence(entity.getAdversarialConfidence())
                 .build();
     }
 
