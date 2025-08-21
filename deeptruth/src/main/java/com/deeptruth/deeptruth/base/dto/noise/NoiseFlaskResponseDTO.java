@@ -39,5 +39,11 @@ public class NoiseFlaskResponseDTO {
     @JsonProperty("confidenceDrop")
     private String confidenceDrop;
 
+    @JsonProperty("mode")
+    private String mode;              // "auto" or "precision"
+
+    @JsonProperty("level")
+    private Integer level;            // 1-4 (precision 모드만)
+
     private String message;
 }

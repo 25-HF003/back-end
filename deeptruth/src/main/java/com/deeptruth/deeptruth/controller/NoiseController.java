@@ -40,7 +40,9 @@ public class NoiseController {
     @PostMapping
     public ResponseEntity<ResponseDTO<NoiseDTO>> createNoise(
             @AuthenticationPrincipal User user,
-            @RequestPart("file") MultipartFile multipartFile) {
+            @RequestPart("file") MultipartFile multipartFile,
+            @RequestParam(value = "mode", defaultValue = "auto") String mode,
+            @RequestParam(value = "level", defaultValue = "2") Integer level) {
         try {
             if (user == null) {
                 return ResponseEntity.status(401)
@@ -50,6 +52,16 @@ public class NoiseController {
             if (multipartFile.isEmpty()) {
                 return ResponseEntity.status(400)
                         .body(ResponseDTO.fail(400, "파일이 비어있습니다."));
+            }
+
+            if (!mode.equals("auto") && !mode.equals("precision")) {
+                return ResponseEntity.status(400)
+                        .body(ResponseDTO.fail(400, "유효하지 않은 모드입니다."));
+            }
+
+            if ("precision".equals(mode) && (level < 1 || level > 4)) {
+                return ResponseEntity.status(400)
+                        .body(ResponseDTO.fail(400, "정밀 모드의 level은 1-4 사이여야 합니다."));
             }
 
             // Flask 호출
@@ -62,6 +74,8 @@ public class NoiseController {
 
             MultiValueMap<String, Object> form = new LinkedMultiValueMap<>();
             form.add("file", resource);
+            form.add("mode", mode);
+            form.add("level", level);
 
             // Flask API 호출
             NoiseFlaskResponseDTO flaskResult = webClient.post()

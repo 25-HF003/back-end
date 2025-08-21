@@ -65,6 +65,8 @@ public class NoiseService {
                 .adversarialPrediction(dto.getAdversarialPrediction())
                 .originalConfidence(dto.getOriginalConfidence())
                 .adversarialConfidence(dto.getAdversarialConfidence())
+                .mode(dto.getMode())
+                .level(dto.getLevel())
                 .build();
 
         noiseRepository.save(noise);
