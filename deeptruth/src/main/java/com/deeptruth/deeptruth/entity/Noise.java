@@ -45,12 +45,21 @@ public class Noise {
     @Column
     private String adversarialPrediction; // 적대적 노이즈 적용 후 이미지 예측
 
+    // 상세 통계 필드 추가
+    @Column
+    private String originalConfidence;     // 신뢰도 변화용
+
+    @Column
+    private String adversarialConfidence;  // 신뢰도 변화용
+
+    @Column(length = 20)
+    private String mode;              // "auto" or "precision"
+
+    @Column
+    private Integer level;            // 1-4, null for auto mode
+
     @Column(nullable=false, updatable = false)
     private LocalDateTime createdAt;
-
-    // 상세 통계 필드 추가
-    @Column private String originalConfidence;     // 신뢰도 변화용
-    @Column private String adversarialConfidence;  // 신뢰도 변화용
 
 
     @PrePersist

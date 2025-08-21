@@ -19,6 +19,9 @@ public class NoiseDTO {
     private Boolean attackSuccess;
     private String originalPrediction;
     private String adversarialPrediction;
+    private String mode;                 // "auto" 또는 "precision"
+    private Integer level;               // 1-4 (정밀 모드만)
+    private String modeDescription;      // "자동 모드" 또는 "정밀 모드"
     private LocalDateTime createdAt;
 
     // 프론트 표시용
@@ -43,6 +46,9 @@ public class NoiseDTO {
                 .adversarialPrediction(entity.getAdversarialPrediction())
                 .originalConfidence(entity.getOriginalConfidence())
                 .adversarialConfidence(entity.getAdversarialConfidence())
+                .mode(entity.getMode())
+                .level(entity.getLevel())
+                .modeDescription(getModeDescription(entity.getMode(), entity.getLevel()))
                 .build();
     }
 
@@ -66,6 +72,9 @@ public class NoiseDTO {
                 .originalConfidence(flaskResponse.getOriginalConfidence())
                 .adversarialConfidence(flaskResponse.getAdversarialConfidence())
                 .confidenceDrop(flaskResponse.getConfidenceDrop())
+                .mode(flaskResponse.getMode())
+                .level(flaskResponse.getLevel())
+                .modeDescription(getModeDescription(flaskResponse.getMode(), flaskResponse.getLevel()))
                 .build();
     }
 
@@ -74,6 +83,25 @@ public class NoiseDTO {
             return originalPrediction + " → " + adversarialPrediction;
         }
         return null;
+    }
+
+    // 모드 설명 생성 헬퍼 메서드 추가
+    private static String getModeDescription(String mode, Integer level) {
+        if ("precision".equals(mode) && level != null) {
+            switch (level) {
+                case 1:
+                    return "정밀 모드 (약함)";
+                case 2:
+                    return "정밀 모드 (보통)";
+                case 3:
+                    return "정밀 모드 (강함)";
+                case 4:
+                    return "정밀 모드 (매우 강함)";
+                default:
+                    return "정밀 모드";
+            }
+        }
+        return "자동 모드";
     }
 
 }
