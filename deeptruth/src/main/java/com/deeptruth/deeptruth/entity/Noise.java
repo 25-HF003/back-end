@@ -48,6 +48,11 @@ public class Noise {
     @Column(nullable=false, updatable = false)
     private LocalDateTime createdAt;
 
+    // 상세 통계 필드 추가
+    @Column private String originalConfidence;     // 신뢰도 변화용
+    @Column private String adversarialConfidence;  // 신뢰도 변화용
+
+
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();

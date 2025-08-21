@@ -63,6 +63,8 @@ public class NoiseService {
                 .attackSuccess(dto.getAttackSuccess())
                 .originalPrediction(dto.getOriginalPrediction())
                 .adversarialPrediction(dto.getAdversarialPrediction())
+                .originalConfidence(dto.getOriginalConfidence())
+                .adversarialConfidence(dto.getAdversarialConfidence())
                 .build();
 
         noiseRepository.save(noise);
@@ -147,20 +149,27 @@ public class NoiseService {
 
     private String generateFileName(String originalFileName) {
         if (originalFileName == null || originalFileName.isBlank()) {
-            return "noise_result.jpg";  // 기본값
+            return "noise_result.jpg";
         }
 
-        // 확장자 제거
-        String baseName = originalFileName.replaceFirst("[.][^.]+$", "");
+        // 확장자 추출
+        int dotIndex = originalFileName.lastIndexOf('.');
+        String extension = dotIndex != -1 ? originalFileName.substring(dotIndex) : ".jpg";
 
-        // 특수문자 제거 및 정규화
+        // 확장자 검증
+        if (extension.length() > 5 || extension.length() <= 1) {
+            extension = ".jpg";
+        }
+
+        // 파일명 정리
+        String baseName = dotIndex != -1 ? originalFileName.substring(0, dotIndex) : originalFileName;
         baseName = baseName.replaceAll("[^a-zA-Z0-9_-]", "_");
 
-        // 파일명이 너무 길면 자르기 (15자 제한)
         if (baseName.length() > 15) {
             baseName = baseName.substring(0, 15);
         }
 
-        return baseName + "_noise.jpg";
+        return baseName + "_noise" + extension.toLowerCase();
     }
+
 }
