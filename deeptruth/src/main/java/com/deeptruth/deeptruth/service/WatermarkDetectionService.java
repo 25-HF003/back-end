@@ -36,7 +36,7 @@ public class WatermarkDetectionService {
     private static final int PHASH_THRESHOLD = 10;
 
 
-    public DetectResultDTO detect(Long userId, MultipartFile file) {
+    public DetectResultDTO detect(Long userId, MultipartFile file, String taskId) {
         final byte[] uploaded;
         try {
             uploaded = file.getBytes();
@@ -92,6 +92,7 @@ public class WatermarkDetectionService {
         MultiValueMap<String, Object> form = new LinkedMultiValueMap<>();
         form.add("image", imagePart);
         form.add("message", message);
+        form.add("taskId", taskId);
 
         WatermarkDetectionFlaskResponseDTO flask = webClient.post()
                 .uri(flaskBaseUrl + "/watermark-detection")
