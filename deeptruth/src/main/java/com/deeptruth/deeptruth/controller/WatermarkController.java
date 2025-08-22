@@ -37,14 +37,14 @@ public class WatermarkController {
     private final WebClient webClient;
 
     @PostMapping
-    public ResponseEntity<ResponseDTO> insertWatermark(@AuthenticationPrincipal User user, @RequestPart("file") MultipartFile multipartFile, @RequestPart String message){
+    public ResponseEntity<ResponseDTO> insertWatermark(@AuthenticationPrincipal User user, @RequestPart("file") MultipartFile multipartFile, @RequestPart String message, @RequestParam(required = false) String taskId){
         try {
             if (user == null) {
                 return ResponseEntity.status(401)
                         .body(ResponseDTO.fail(401, "인증이 필요합니다."));
             }
 
-            InsertResultDTO result = waterMarkService.insert(user.getUserId(), multipartFile, message);
+            InsertResultDTO result = waterMarkService.insert(user.getUserId(), multipartFile, message, taskId);
             return ResponseEntity.ok(ResponseDTO.success(200, "워터마크 삽입 성공", result));
 
         } catch (IllegalArgumentException e) {

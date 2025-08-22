@@ -45,10 +45,13 @@ public class WatermarkService {
     @Value("${flask.watermarkServer.url}")
     private String flaskServerUrl;
 
-    public InsertResultDTO insert(Long userId, MultipartFile file, String message) {
+    public InsertResultDTO insert(Long userId, MultipartFile file, String message, String taskId) {
         // 1) 유효성
         if (message == null || message.length() > 4) {
             throw new IllegalArgumentException("message는 최대 4자입니다.");
+        }
+        if (taskId == null || taskId.isBlank()) {
+            taskId = java.util.UUID.randomUUID().toString();
         }
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException(userId));
@@ -74,6 +77,7 @@ public class WatermarkService {
         MultipartBodyBuilder builder = new MultipartBodyBuilder();
         builder.part("image", imagePart);
         builder.part("message", message);
+        builder.part("taskId", taskId);
 
         WatermarkFlaskResponseDTO flask = webClient.post()
                 .uri(flaskServerUrl + "/watermark-insert")
