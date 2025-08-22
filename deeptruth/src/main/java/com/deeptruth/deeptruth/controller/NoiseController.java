@@ -42,8 +42,13 @@ public class NoiseController {
             @AuthenticationPrincipal User user,
             @RequestPart("file") MultipartFile multipartFile,
             @RequestParam(value = "mode", defaultValue = "auto") String mode,
-            @RequestParam(value = "level", defaultValue = "2") Integer level) {
+            @RequestParam(value = "level", defaultValue = "2") Integer level,
+            @RequestParam(value = "taskId", required = false)  String taskId) {
         try {
+            if (taskId == null || taskId.isBlank()) {
+                taskId = java.util.UUID.randomUUID().toString();
+            }
+
             if (user == null) {
                 return ResponseEntity.status(401)
                         .body(ResponseDTO.fail(401, "인증이 필요합니다."));
@@ -76,6 +81,7 @@ public class NoiseController {
             form.add("file", resource);
             form.add("mode", mode);
             form.add("level", level);
+            form.add("taskId", taskId);
 
             // Flask API 호출
             NoiseFlaskResponseDTO flaskResult = webClient.post()
