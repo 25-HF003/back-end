@@ -1,6 +1,7 @@
 package com.deeptruth.deeptruth.controller;
 
 import com.deeptruth.deeptruth.base.dto.response.ResponseDTO;
+import com.deeptruth.deeptruth.base.dto.watermark.InsertResultDTO;
 import com.deeptruth.deeptruth.base.dto.watermark.WatermarkDTO;
 import com.deeptruth.deeptruth.base.dto.watermark.WatermarkFlaskResponseDTO;
 import com.deeptruth.deeptruth.entity.User;
@@ -35,54 +36,19 @@ public class WatermarkController {
     private final UserService userService;
     private final WebClient webClient;
 
-    @Value("${flask.watermarkServer.url}")
-    private String flaskServerUrl;
-
     @PostMapping
-    public ResponseEntity<ResponseDTO> insertWatermark(@AuthenticationPrincipal User user, @RequestPart("file") MultipartFile multipartFile, @RequestPart String message){
+    public ResponseEntity<ResponseDTO> insertWatermark(@AuthenticationPrincipal User user, @RequestPart("file") MultipartFile multipartFile, @RequestPart String message, @RequestParam(required = false) String taskId){
         try {
             if (user == null) {
                 return ResponseEntity.status(401)
                         .body(ResponseDTO.fail(401, "인증이 필요합니다."));
             }
 
-            ByteArrayResource resource = new ByteArrayResource(multipartFile.getBytes()) {
-                @Override
-                public String getFilename() {
-                    return multipartFile.getOriginalFilename();
-                }
-            };
+            InsertResultDTO result = waterMarkService.insert(user.getUserId(), multipartFile, message, taskId);
+            return ResponseEntity.ok(ResponseDTO.success(200, "워터마크 삽입 성공", result));
 
-            MultipartBodyBuilder builder = new MultipartBodyBuilder();
-            builder.part("image", resource);
-            builder.part("message", message);
-
-            Mono<WatermarkFlaskResponseDTO> flaskResponseMono = webClient.post()
-                    .uri(flaskServerUrl + "/watermark-insert")
-                    .contentType(MediaType.MULTIPART_FORM_DATA)
-                    .body(BodyInserters.fromMultipartData(builder.build()))
-                    .retrieve()
-                    .bodyToMono(WatermarkFlaskResponseDTO.class);
-
-            WatermarkFlaskResponseDTO flaskResult = flaskResponseMono.block();
-
-            if (flaskResult == null) {
-                return ResponseEntity.status(500).body(ResponseDTO.fail(500, "Flask 서버 응답 실패"));
-            }
-
-            String base64Image = flaskResult.getImage_base64();
-            String waterMarkedImageUrl = null;
-
-
-            if (base64Image != null && !base64Image.isEmpty()) {
-                waterMarkedImageUrl = waterMarkService.uploadBase64ImageToS3(base64Image, user.getUserId());
-                flaskResult.setWatermarkedFilePath(waterMarkedImageUrl);
-            }
-
-            WatermarkDTO dto = waterMarkService.createWatermark(user.getUserId(), flaskResult);
-
-            return ResponseEntity.ok(ResponseDTO.success(200, "워터마크 삽입 성공", dto));
-
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ResponseDTO.fail(400, e.getMessage()));
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(500).body(ResponseDTO.fail(500, "서버 오류: " + e.getMessage()));
@@ -93,7 +59,7 @@ public class WatermarkController {
     public ResponseEntity<ResponseDTO> getAllWatermarks(@AuthenticationPrincipal User user, @PageableDefault(size = 15, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable){
 
 
-        Page<WatermarkDTO> result = waterMarkService.getAllResult(user.getUserId(), pageable);
+        Page<InsertResultDTO> result = waterMarkService.getAllResult(user.getUserId(), pageable);
         return ResponseEntity.ok(
                 ResponseDTO.success(200, "워터마크 삽입 기록 전체 조회 성공", result)
         );
@@ -103,7 +69,7 @@ public class WatermarkController {
     @GetMapping("/{id}")
     public ResponseEntity<ResponseDTO> getWatermark(@PathVariable Long id, @AuthenticationPrincipal User user){
 
-        WatermarkDTO result = waterMarkService.getSingleResult(user.getUserId(), id);
+        InsertResultDTO result = waterMarkService.getSingleResult(user.getUserId(), id);
         return ResponseEntity.ok(ResponseDTO.success(200, "워터마크 삽입 기록 조회 성공", result));
     }
 

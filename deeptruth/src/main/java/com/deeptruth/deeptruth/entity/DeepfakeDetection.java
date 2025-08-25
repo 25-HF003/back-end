@@ -1,5 +1,7 @@
 package com.deeptruth.deeptruth.entity;
 
+import com.deeptruth.deeptruth.base.Enum.DeepfakeDetector;
+import com.deeptruth.deeptruth.base.Enum.DeepfakeMode;
 import com.deeptruth.deeptruth.base.Enum.DeepfakeResult;
 import jakarta.persistence.*;
 import lombok.*;
@@ -31,11 +33,35 @@ public class DeepfakeDetection {
 
     @Column
     private Float averageConfidence;
+
     @Column
     private Float maxConfidence;
 
     @Column(nullable=false, updatable = false)
     private LocalDateTime createdAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column
+    private DeepfakeMode mode;
+
+    @Column
+    private Boolean useTta;
+
+    @Column
+    private Boolean useIllum;
+
+    @Enumerated(EnumType.STRING)
+    @Column
+    private DeepfakeDetector detector;
+
+    @Column
+    private Integer smoothWindow;
+
+    @Column
+    private Integer minFace;
+
+    @Column
+    private Integer sampleCount;
 
     @PrePersist
     protected void onCreate() {

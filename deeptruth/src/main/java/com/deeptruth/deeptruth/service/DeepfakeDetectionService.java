@@ -1,8 +1,11 @@
 package com.deeptruth.deeptruth.service;
 
+import com.deeptruth.deeptruth.base.Enum.DeepfakeDetector;
+import com.deeptruth.deeptruth.base.Enum.DeepfakeMode;
 import com.deeptruth.deeptruth.base.Enum.DeepfakeResult;
 import com.deeptruth.deeptruth.base.dto.deepfake.DeepfakeDetectionDTO;
 import com.deeptruth.deeptruth.base.dto.deepfake.FlaskResponseDTO;
+import com.deeptruth.deeptruth.base.exception.*;
 import com.deeptruth.deeptruth.entity.DeepfakeDetection;
 import com.deeptruth.deeptruth.entity.User;
 import com.deeptruth.deeptruth.repository.DeepfakeDetectionRepository;
@@ -34,68 +37,81 @@ public class DeepfakeDetectionService {
 
     private final AmazonS3Service amazonS3Service;
 
-    public DeepfakeDetectionDTO uploadVideo(Long userId, MultipartFile multipartFile){
-        User user = userRepository.findById(userId).orElseThrow();
-        String filePath = amazonS3Service.uploadFile("deepfake", multipartFile);
+    public DeepfakeDetectionDTO createDetection(Long userId, FlaskResponseDTO dto){
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException(userId));
 
-        DeepfakeResult deepfakeResult = DeepfakeResult.FAKE;
-        Float riskScore = 0.7F;
+        if (dto == null) throw new InvalidDetectionResponseException("response is null");
+        if (dto.getResult() == null) throw new InvalidDetectionResponseException("result is null");
+        if (dto.getImageUrl() == null || dto.getImageUrl().isBlank())
+            throw new InvalidDetectionResponseException("imageUrl is blank");
+        if (dto.getAverageConfidence() != null &&
+                (dto.getAverageConfidence() < 0 || dto.getAverageConfidence() > 1))
+            throw new InvalidDetectionResponseException("averageConfidence out of [0,1]");
+        if (dto.getMaxConfidence() != null &&
+                (dto.getMaxConfidence() < 0 || dto.getMaxConfidence() > 1))
+            throw new InvalidDetectionResponseException("maxConfidence out of [0,1]");
 
-
-        DeepfakeDetection detection = DeepfakeDetection.builder()
-                .user(user)
-                .filePath(filePath)
-                .result(deepfakeResult)
-                .build();
-
-        deepfakeDetectionRepository.save(detection);
-
-        DeepfakeDetectionDTO dto = DeepfakeDetectionDTO.fromEntity(detection);
-
-        return dto;
-    }
-
-    public DeepfakeDetectionDTO createDetection(Long userId, FlaskResponseDTO flaskResponseDTO){
-        User user = userRepository.findById(userId).orElseThrow();
 
         DeepfakeDetection detection = DeepfakeDetection.builder()
                 .user(user)
-                .filePath(flaskResponseDTO.getImageUrl())
-                .result(flaskResponseDTO.getResult())
-                .averageConfidence(flaskResponseDTO.getAverageConfidence())
-                .maxConfidence(flaskResponseDTO.getMaxConfidence())
+                .filePath(dto.getImageUrl())
+                .result(dto.getResult())
+                .averageConfidence(dto.getAverageConfidence())
+                .maxConfidence(dto.getMaxConfidence())
+                .mode(DeepfakeMode.valueOf(dto.getMode().toUpperCase()))
+                .useTta(dto.getUseTta())
+                .useIllum(dto.getUseIllum())
+                .detector(DeepfakeDetector.valueOf(dto.getDetector().toUpperCase()))
+                .smoothWindow(dto.getSmoothWindow())
+                .minFace(dto.getMinFace())
+                .sampleCount(dto.getSampleCount())
                 .build();
 
         deepfakeDetectionRepository.save(detection);
-
         return DeepfakeDetectionDTO.fromEntity(detection);
     }
 
     public String uploadBase64ImageToS3(String base64Image, Long userId) {
-        byte[] decodedBytes = Base64.getDecoder().decode(base64Image);
-        InputStream inputStream = new ByteArrayInputStream(decodedBytes);
+        userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException(userId));
+        final byte[] decodedBytes;
+        try {
+            decodedBytes = Base64.getDecoder().decode(base64Image);
+        } catch (IllegalArgumentException e) {
+            throw new ImageDecodingException("invalid base64");
+        }
 
-        String key = "deepfake/" + userId + "/" + UUID.randomUUID() + ".jpg";
-        String imageUrl = amazonS3Service.uploadBase64Image(inputStream, key);
-
-        return imageUrl;
+        try (InputStream inputStream = new ByteArrayInputStream(decodedBytes)) {
+            String key = "deepfake/" + userId + "/" + UUID.randomUUID() + ".jpg";
+            return amazonS3Service.uploadBase64Image(inputStream, key);
+        } catch (Exception e) {
+            throw new StorageException("failed to upload image to S3", e);
+        }
     }
 
     public Page<DeepfakeDetectionDTO> getAllResult(Long userId, Pageable pageable){
+        userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException(userId));
         return deepfakeDetectionRepository.findByUser_UserId(userId, pageable)
                 .map(DeepfakeDetectionDTO::fromEntity);
     }
 
     public DeepfakeDetectionDTO getSingleResult(Long userId, Long id) {
-        User user = userRepository.findById(userId).orElseThrow();
-        DeepfakeDetection detection = deepfakeDetectionRepository.findByDeepfakeDetectionIdAndUser(id, user).orElseThrow();
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException(userId));
+
+        DeepfakeDetection detection = deepfakeDetectionRepository
+                .findByDeepfakeDetectionIdAndUser(id, user)
+                .orElseThrow(() -> new DetectionNotFoundException(id, userId));
 
         return DeepfakeDetectionDTO.fromEntity(detection);
     }
 
     public void deleteResult(Long userId, Long id){
-        User user = userRepository.findById(userId).orElseThrow();
-
-        deepfakeDetectionRepository.deleteByDeepfakeDetectionIdAndUser(id, user);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException(userId));
+        int deleted = deepfakeDetectionRepository.deleteByDeepfakeDetectionIdAndUser(id, user);
+        if (deleted == 0) {
+            throw new DetectionNotFoundException(id, userId);
+        }
     }
 }

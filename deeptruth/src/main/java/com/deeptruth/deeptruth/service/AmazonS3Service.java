@@ -72,4 +72,41 @@ public class AmazonS3Service {
         }
     }
 
+    public String uploadStream(InputStream inputStream, String key, String contentType) {
+        try {
+            ObjectMetadata metadata = new ObjectMetadata();
+            metadata.setContentType(contentType);
+
+            // 1) ByteArrayInputStream이면 available()로 정확한 길이 설정 가능
+            if (inputStream instanceof java.io.ByteArrayInputStream) {
+                int len = inputStream.available();
+                metadata.setContentLength(len);
+
+                amazonS3Client.putObject(
+                        new PutObjectRequest(bucketName, key, inputStream, metadata)
+                                .withCannedAcl(CannedAccessControlList.PublicRead)
+                );
+
+            } else {
+                // 2) 길이를 모르면 메모리에 한 번 버퍼링해서 Content-Length 설정
+                byte[] bytes = inputStream.readAllBytes(); // Java 11+
+                metadata.setContentLength(bytes.length);
+
+                try (InputStream bais = new java.io.ByteArrayInputStream(bytes)) {
+                    amazonS3Client.putObject(
+                            new PutObjectRequest(bucketName, key, bais, metadata)
+                                    .withCannedAcl(CannedAccessControlList.PublicRead)
+                    );
+                }
+            }
+
+            return amazonS3Client.getUrl(bucketName, key).toString();
+
+        } catch (IOException e) {
+            log.error("S3 업로드 실패 (key: {})", key, e);
+            throw new RuntimeException("S3 업로드 실패", e);
+        }
+    }
+
+
 }
