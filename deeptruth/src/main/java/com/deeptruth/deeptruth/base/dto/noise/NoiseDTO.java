@@ -25,6 +25,7 @@ public class NoiseDTO {
     private LocalDateTime createdAt;
 
     // 프론트 표시용
+    private String taskId;
     private String originalImageBase64;
     private String processedImageBase64;
     private String originalConfidence;
@@ -67,6 +68,7 @@ public class NoiseDTO {
                 .originalPrediction(entity.getOriginalPrediction())
                 .adversarialPrediction(entity.getAdversarialPrediction())
                 // Flask 응답 데이터
+                .taskId(flaskResponse.getTaskId())
                 .originalImageBase64(flaskResponse.getOriginalFilePath())
                 .processedImageBase64(flaskResponse.getProcessedFilePath())
                 .originalConfidence(flaskResponse.getOriginalConfidence())
