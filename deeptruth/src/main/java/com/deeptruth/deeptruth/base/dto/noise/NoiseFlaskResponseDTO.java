@@ -45,5 +45,8 @@ public class NoiseFlaskResponseDTO {
     @JsonProperty("level")
     private Integer level;            // 1-4 (precision 모드만)
 
+    @JsonProperty("taskId")
+    private String taskId;
+
     private String message;
 }
