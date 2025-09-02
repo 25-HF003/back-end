@@ -128,6 +128,7 @@ public class WatermarkService {
                 .s3MessageKey(msgUrl)
                 .fileName(flask.getFilename())
                 .createdAt(LocalDateTime.now())
+                .taskId(taskId)
                 .build();
 
         watermarkRepository.save(wm);
@@ -142,6 +143,7 @@ public class WatermarkService {
                 .normalizedSha256(normalizedSha256)
                 .phash(phash)
                 .createdAt(LocalDateTime.now())
+                .taskId(taskId)
                 .build();
         }
   
