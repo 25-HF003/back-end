@@ -65,6 +65,9 @@ public class Watermark {
     @Column(nullable=false, updatable = false)
     private LocalDateTime createdAt;
 
+    @Column
+    private String taskId;
+
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();

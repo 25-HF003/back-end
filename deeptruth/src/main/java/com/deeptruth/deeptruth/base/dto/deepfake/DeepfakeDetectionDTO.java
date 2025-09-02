@@ -28,6 +28,7 @@ public class DeepfakeDetectionDTO {
     private Integer smoothWindow;
     private Integer minFace;
     private Integer sampleCount;
+    private String taskId;
 
     public static DeepfakeDetectionDTO fromEntity(DeepfakeDetection entity) {
         return DeepfakeDetectionDTO.builder()
@@ -44,6 +45,7 @@ public class DeepfakeDetectionDTO {
                 .smoothWindow(entity.getSmoothWindow())
                 .minFace(entity.getMinFace())
                 .sampleCount(entity.getSampleCount())
+                .taskId(entity.getTaskId())
                 .build();
     }
 }

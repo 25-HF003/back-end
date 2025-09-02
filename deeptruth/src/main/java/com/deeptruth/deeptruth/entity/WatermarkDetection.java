@@ -61,6 +61,9 @@ public class WatermarkDetection {
     @Column(nullable=false, updatable = false)
     private LocalDateTime watermarkDetectedAt;
 
+    @Column
+    private String taskId;
+
     @PrePersist
     protected void onCreate() {
         this.watermarkDetectedAt = LocalDateTime.now();

@@ -63,6 +63,9 @@ public class DeepfakeDetection {
     @Column
     private Integer sampleCount;
 
+    @Column
+    private String taskId;
+
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();

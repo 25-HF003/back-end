@@ -66,6 +66,7 @@ public class DeepfakeDetectionService {
                 .smoothWindow(dto.getSmoothWindow())
                 .minFace(dto.getMinFace())
                 .sampleCount(dto.getSampleCount())
+                .taskId(dto.getTaskId())
                 .build();
 
         deepfakeDetectionRepository.save(detection);
