@@ -6,16 +6,21 @@ import com.deeptruth.deeptruth.base.OAuth.OAuth2UserInfo;
 import com.deeptruth.deeptruth.base.dto.login.LoginRequestDTO;
 import com.deeptruth.deeptruth.base.dto.login.LoginResponse;
 import com.deeptruth.deeptruth.base.dto.signup.SignupRequestDTO;
+import com.deeptruth.deeptruth.base.dto.user.UserUpdateRequest;
+import com.deeptruth.deeptruth.base.exception.*;
 import com.deeptruth.deeptruth.entity.User;
+import com.deeptruth.deeptruth.repository.NoiseRepository;
 import com.deeptruth.deeptruth.repository.RefreshTokenRepository;
 import com.deeptruth.deeptruth.repository.UserRepository;
 import com.deeptruth.deeptruth.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import com.deeptruth.deeptruth.entity.RefreshToken;
-import com.deeptruth.deeptruth.base.dto.login.LoginResponse;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 import java.util.UUID;
@@ -24,6 +29,7 @@ import static com.deeptruth.deeptruth.constants.LoginConstants.*;
 import static com.deeptruth.deeptruth.constants.SignupConstants.*;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class UserService {
     private final UserRepository userRepository;
@@ -47,7 +53,6 @@ public class UserService {
                 ));
     }
 
-
     private String generateUniqueNickname(String baseName){
         String nickname = baseName;
         int count=1;
@@ -58,11 +63,8 @@ public class UserService {
         return nickname;
     }
 
-    public boolean existsByUserId(Long userId){
-        return userRepository.existsByUserId(userId);
-    }
-
     // 일반 회원가입
+    @Transactional
     public void signup(SignupRequestDTO request) {
         // 유효성 검사
         validateLoginId(request.getLoginId());
@@ -119,6 +121,7 @@ public class UserService {
         }
     }
 
+    // 로그인
     public LoginResponse login(LoginRequestDTO loginRequestDTO) {
         // null 체크
         if (loginRequestDTO.getLoginId() == null || loginRequestDTO.getLoginId().trim().isEmpty()) {
@@ -131,11 +134,11 @@ public class UserService {
 
         // 사용자 조회
         User user = userRepository.findByLoginId(loginRequestDTO.getLoginId())
-                .orElseThrow(() -> new IllegalArgumentException(USER_NOT_FOUND_MESSAGE));
+                .orElseThrow(() -> new UserNotFoundException(null));
 
         // 비밀번호 검증
         if (!passwordEncoder.matches(loginRequestDTO.getPassword(), user.getPassword())) {
-            throw new IllegalArgumentException(PASSWORD_MISMATCH_MESSAGE);
+            throw new InvalidPasswordException(PASSWORD_MISMATCH_MESSAGE);
         }
 
         // 토큰 생성
@@ -218,6 +221,72 @@ public class UserService {
         }
     }
 
+    // 회원정보 수정
+    @Transactional
+    public void updateUser(User user, UserUpdateRequest request) {
+        // 닉네임 변경 처리
+        if (request.getNickname() != null && !request.getNickname().equals(user.getNickname())) {
+            validateNickname(request.getNickname());
+            if (userRepository.existsByNickname(request.getNickname())) {
+                throw new DuplicateNicknameException("이미 사용 중인 닉네임입니다.");
+            }
+            user.setNickname(request.getNickname());
+        }
+
+        // 이메일 변경 처리 (일반)
+        if (request.getEmail() != null && !request.getEmail().equals(user.getEmail())) {
+            if (user.getSocialLoginType() != SocialLoginType.NONE) {
+                throw new UnauthorizedOperationException("소셜 로그인 사용자는 이메일을 변경할 수 없습니다.");
+            }
+
+            if (userRepository.existsByEmail(request.getEmail())) {
+                throw new DuplicateEmailException("이미 사용 중인 이메일입니다.");
+            }
+            user.setEmail(request.getEmail());
+        }
+
+        // 비밀번호 변경 처리 (일반)
+        if (request.getNewPassword() != null) {
+            if (user.getSocialLoginType() != SocialLoginType.NONE) {
+                throw new UnauthorizedOperationException("소셜 로그인 사용자는 비밀번호를 변경할 수 없습니다.");
+            }
+
+            if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+                throw new InvalidPasswordException("현재 비밀번호가 일치하지 않습니다.");
+            }
+
+            if (request.getNewPassword().equals(request.getCurrentPassword())) {
+                throw new InvalidPasswordException("새 비밀번호는 현재 비밀번호와 달라야 합니다.");
+            }
+
+            if (!request.getNewPassword().equals(request.getNewPasswordConfirm())) {
+                throw new InvalidPasswordException("새 비밀번호 확인이 일치하지 않습니다.");
+            }
+
+            validatePassword(request.getNewPassword(), request.getNewPasswordConfirm(), user.getLoginId());
+            String encoded = passwordEncoder.encode(request.getNewPassword());
+            user.setPassword(encoded);
+        }
+
+        userRepository.save(user);
+    }
+
+    public User findUserById(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException(userId));
+    }
+
+    // 회원 탈퇴
+    @Transactional
+    public void deleteUser(User user) {
+        // RefreshToken만 실제 삭제 - 보안상 필요
+        refreshTokenRepository.deleteByUser(user);
+
+        // User는 Soft Delete - 자동으로 UPDATE 쿼리 실행
+        userRepository.delete(user);  // deleted = true로 변경
+
+        log.info("사용자 소프트 삭제 완료: userId={}", user.getUserId());
+    }
 
 
 }
