@@ -5,8 +5,11 @@ import com.deeptruth.deeptruth.base.Enum.Role;
 import com.deeptruth.deeptruth.base.Enum.SocialLoginType;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Builder
@@ -15,6 +18,8 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "user")
+@SQLDelete(sql = "UPDATE user SET deleted_at = NOW() WHERE user_id = ?")
+@SQLRestriction("deleted_at IS NULL")
 public class User {
 
     @Id
@@ -61,4 +66,7 @@ public class User {
     protected void onCreate() {
         this.createdAt = LocalDate.now();
     }
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
 }

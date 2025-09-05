@@ -1,6 +1,7 @@
 package com.deeptruth.deeptruth.config;
 
 import com.deeptruth.deeptruth.service.CustomOAuth2UserService;
+import com.deeptruth.deeptruth.service.CustomUserDetailsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -17,12 +18,14 @@ public class SecurityConfig {
 
     private final CustomOAuth2UserService customOAuth2UserService;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
-    private final OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler; // ✅ 주입
+    private final OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
+    private final CustomUserDetailsService customUserDetailsService;
 
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+                .userDetailsService(customUserDetailsService)
                 // 세션 정책: OAuth2는 세션 사용, JWT API는 Stateless
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
@@ -35,7 +38,9 @@ public class SecurityConfig {
                                 "/v3/api-docs/**",
                                 "/**"  // ⚡ 모든 요청을 인증 없이 허용 (임시 설정)
                         ).permitAll()
-                        .requestMatchers("/api/noise/**").authenticated()
+                        .requestMatchers("/api/noise/**",
+                                            "/api/users/**"
+                        ).authenticated()
                         .anyRequest().permitAll()
                 )
                 .oauth2Login(oauth2 -> oauth2

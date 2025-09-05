@@ -116,7 +116,7 @@ public class NoiseController {
             return ResponseEntity.ok(ResponseDTO.success(200, "적대적 노이즈 삽입 성공", createdNoise));
 
         } catch (Exception e) {
-            log.error("❌ 적대적 노이즈 생성 중 오류 발생: ", e);
+            log.error("적대적 노이즈 생성 중 오류 발생: ", e);
             return ResponseEntity.status(500)
                     .body(ResponseDTO.fail(500, "서버 오류: " + e.getMessage()));
         }

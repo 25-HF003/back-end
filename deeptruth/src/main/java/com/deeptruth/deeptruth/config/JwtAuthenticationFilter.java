@@ -1,5 +1,6 @@
 package com.deeptruth.deeptruth.config;
 
+import com.deeptruth.deeptruth.base.exception.UserNotFoundException;
 import com.deeptruth.deeptruth.entity.User;
 import com.deeptruth.deeptruth.repository.UserRepository;
 import com.deeptruth.deeptruth.util.JwtUtil;
@@ -9,6 +10,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -52,38 +54,48 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     User user = userOptional.get();
 
                     // 6. Spring Security 인증 객체 생성
-                    UsernamePasswordAuthenticationToken authToken =
-                            new UsernamePasswordAuthenticationToken(
-                                    user,
-                                    null,
-                                    Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + user.getRole()))
-                            );
+                    CustomUserDetails userDetails = new CustomUserDetails(user);
+
+                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                            userDetails,
+                            null,
+                            userDetails.getAuthorities()
+                    );
 
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
                     // 7. SecurityContext에 인증 정보 저장
                     SecurityContextHolder.getContext().setAuthentication(authToken);
 
-                    log.debug("JWT 인증 성공: {}", loginId);
+                    log.info("JWT 인증 성공 - 사용자: [{}]", loginId);
+                } else {
+                    log.warn("사용자 정보 조회 실패 - loginId: [{}]", loginId);
+                    handleException(response, HttpStatus.UNAUTHORIZED, "존재하지 않는 회원입니다.");
+                    return; // 필터 체인 중단
                 }
+
             } catch (Exception e) {
-                log.error("JWT 인증 실패: {}", e.getMessage());
-                // 예외 발생 시에도 SecurityContext 초기화
-                SecurityContextHolder.clearContext();
+                log.error("JWT 인증 처리 중 예외 발생 - URI: [{}], 오류: [{}]",
+                        request.getRequestURI(), e.getMessage(), e);
+                handleException(response, HttpStatus.UNAUTHORIZED, "인증 처리 중 오류가 발생했습니다.");
+                return; // 필터 체인 중단
             }
-        } else {
-            // 토큰이 없거나 유효하지 않을 때 SecurityContext 초기화
-            log.debug("유효하지 않은 토큰 또는 토큰 없음");
-            SecurityContextHolder.clearContext();
         }
 
         // 8. 다음 필터로 전달
         filterChain.doFilter(request, response);
     }
 
-    /**
-     * Authorization 헤더에서 Bearer 토큰 추출
-     */
+    private void handleException(HttpServletResponse response, HttpStatus status, String message) throws IOException {
+        response.setContentType("application/json;charset=UTF-8");
+        response.setStatus(status.value());
+        response.getWriter().write(String.format(
+                "{\"success\":false,\"status\":%d,\"message\":\"%s\",\"data\":null}",
+                status.value(), message
+        ));
+    }
+
+    // Authorization 헤더에서 Bearer 토큰 추출
     private String extractTokenFromHeader(HttpServletRequest request) {
         String bearerToken = request.getHeader("Authorization");
 
@@ -94,9 +106,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         return null;
     }
 
-    /**
-     * 인증이 필요없는 경로들은 필터를 건너뛰기
-     */
+    //인증이 필요없는 경로들은 필터를 건너뛰기
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
