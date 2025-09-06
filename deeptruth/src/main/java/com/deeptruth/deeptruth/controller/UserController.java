@@ -69,9 +69,7 @@ public class UserController {
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestBody UserUpdateRequest request) {
 
-        Long userId = userDetails.getUserId();
-
-        User user = userService.findUserById(userId);  // UserNotFoundException 발생 가능
+        User user = userDetails.getUser();  // UserNotFoundException 발생 가능
         userService.updateUser(user, request);         // DuplicateNicknameException 발생 가능
 
         return ResponseEntity.ok(
@@ -83,8 +81,7 @@ public class UserController {
     @DeleteMapping("/users")
     public ResponseEntity<ResponseDTO<String>> deleteUser(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        Long userId = userDetails.getUserId();
-        User user = userService.findUserById(userId);
+        User user = userDetails.getUser();
         userService.deleteUser(user);
 
         return ResponseEntity.ok(
