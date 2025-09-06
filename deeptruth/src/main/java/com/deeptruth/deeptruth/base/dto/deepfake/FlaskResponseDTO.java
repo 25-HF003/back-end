@@ -12,38 +12,34 @@ import java.util.Map;
 @NoArgsConstructor
 @AllArgsConstructor
 public class FlaskResponseDTO {
+    @JsonProperty("taskId") private String taskId;
     private DeepfakeResult result;
+    private String imageUrl;
+    @JsonProperty("most_suspect_image") private String base64Url;
 
-    @JsonProperty("average_fake_confidence")
-    private Float averageConfidence;
 
-    @JsonProperty("max_confidence")
-    private Float maxConfidence;
+    @JsonProperty("score_weighted") private Float scoreWeighted;
+    @JsonProperty("threshold_tau") private Float thresholdTau;
+    @JsonProperty("frame_vote_ratio") private Float frameVoteRatio;
 
-    @JsonProperty("most_suspect_image")
-    private String base64Url;
+    @JsonProperty("average_fake_confidence") private Float averageConfidence;
+    @JsonProperty("median_confidence") private Float medianConfidence;
+    @JsonProperty("max_confidence") private Float maxConfidence;
+    @JsonProperty("variance_confidence") private Float varianceConfidence;
+
+    @JsonProperty("frames_processed") private Integer framesProcessed;
+    @JsonProperty("processing_time_sec") private Float processingTimeSec;
 
     private String detector;
-
-    @JsonProperty("min_face")
-    private Integer minFace;
-
     private String mode;
+    @JsonProperty("min_face") private Integer minFace;
+    @JsonProperty("sample_count") private Integer sampleCount;
+    @JsonProperty("smooth_window") private Integer smoothWindow;
+    @JsonProperty("use_illum") private Boolean useIllum;
+    @JsonProperty("use_tta") private Boolean useTta;
 
-    @JsonProperty("sample_count")
-    private Integer sampleCount;
+    @JsonProperty("timeseries") private Timeseries timeseries;
+    @JsonProperty("stability_evidence") private StabilityEvidence stabilityEvidence;
+    @JsonProperty("speed") private Speed speed;
 
-    @JsonProperty("smooth_window")
-    private Integer smoothWindow;
-
-    @JsonProperty("use_illum")
-    private Boolean useIllum;
-
-    @JsonProperty("use_tta")
-    private Boolean useTta;
-
-    @JsonProperty("taskId")
-    private String taskId;
-
-    private String imageUrl;
 }
