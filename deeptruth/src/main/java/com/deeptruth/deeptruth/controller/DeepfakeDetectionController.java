@@ -56,7 +56,7 @@ public class DeepfakeDetectionController {
     @GetMapping
     public ResponseEntity<ResponseDTO> getAllDetections(@AuthenticationPrincipal CustomUserDetails userDetails,
                                                         @PageableDefault(size = 15, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable){
-        Page<DeepfakeDetectionDTO> result = deepfakeDetectionService.getAllResult(userDetails.getUserId(), pageable);
+        Page<DeepfakeDetectionListDTO> result = deepfakeDetectionService.getAllResult(userDetails.getUserId(), pageable);
 
         return ResponseEntity.ok(
                 ResponseDTO.success(200, "딥페이크 탐지 결과 전체 조회 성공", result)
