@@ -52,7 +52,8 @@ public class GlobalExceptionHandler {
     }
 
     // 409 - 중복 리소스
-    @ExceptionHandler({DuplicateEmailException.class, DuplicateNicknameException.class})
+    @ExceptionHandler({DuplicateEmailException.class, DuplicateNicknameException.class,
+            DuplicateLoginIdException.class})
     public ResponseEntity<ResponseDTO> handleDuplicateResource(RuntimeException ex) {
         log.info("[409] {}", ex.getMessage());
         return ResponseEntity
