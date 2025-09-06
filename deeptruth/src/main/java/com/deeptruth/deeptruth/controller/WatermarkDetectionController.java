@@ -2,6 +2,7 @@ package com.deeptruth.deeptruth.controller;
 
 import com.deeptruth.deeptruth.base.dto.response.ResponseDTO;
 import com.deeptruth.deeptruth.base.dto.watermarkDetection.DetectResultDTO;
+import com.deeptruth.deeptruth.config.CustomUserDetails;
 import com.deeptruth.deeptruth.entity.User;
 import com.deeptruth.deeptruth.service.WatermarkDetectionService;
 import lombok.RequiredArgsConstructor;
@@ -19,15 +20,15 @@ public class WatermarkDetectionController {
 
     @PostMapping(value = "/detection", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ResponseDTO> detect(
-            @AuthenticationPrincipal User user,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestPart("file") MultipartFile file,
             @RequestParam(required = false) String taskId) {
-        if (user == null) {
+        if (userDetails == null) {
             return ResponseEntity.status(401)
                     .body(ResponseDTO.fail(401, "인증이 필요합니다."));
         }
         try {
-            DetectResultDTO result = detectionService.detect(user.getUserId(), file, taskId);
+            DetectResultDTO result = detectionService.detect(userDetails.getUserId(), file, taskId);
             return ResponseEntity.ok(ResponseDTO.success(200, "워터마크 탐지 성공", result));
         } catch (IllegalStateException ex) {
             return ResponseEntity.status(404)

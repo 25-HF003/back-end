@@ -4,6 +4,7 @@ import com.deeptruth.deeptruth.base.dto.response.ResponseDTO;
 import com.deeptruth.deeptruth.base.dto.watermark.InsertResultDTO;
 import com.deeptruth.deeptruth.base.dto.watermark.WatermarkDTO;
 import com.deeptruth.deeptruth.base.dto.watermark.WatermarkFlaskResponseDTO;
+import com.deeptruth.deeptruth.config.CustomUserDetails;
 import com.deeptruth.deeptruth.entity.User;
 import com.deeptruth.deeptruth.service.UserService;
 import com.deeptruth.deeptruth.service.WatermarkService;
@@ -37,14 +38,14 @@ public class WatermarkController {
     private final WebClient webClient;
 
     @PostMapping
-    public ResponseEntity<ResponseDTO> insertWatermark(@AuthenticationPrincipal User user, @RequestPart("file") MultipartFile multipartFile, @RequestPart String message, @RequestParam(required = false) String taskId){
+    public ResponseEntity<ResponseDTO> insertWatermark(@AuthenticationPrincipal CustomUserDetails userDetails, @RequestPart("file") MultipartFile multipartFile, @RequestPart String message, @RequestParam(required = false) String taskId){
         try {
-            if (user == null) {
+            if (userDetails == null) {
                 return ResponseEntity.status(401)
                         .body(ResponseDTO.fail(401, "인증이 필요합니다."));
             }
 
-            InsertResultDTO result = waterMarkService.insert(user.getUserId(), multipartFile, message, taskId);
+            InsertResultDTO result = waterMarkService.insert(userDetails.getUserId(), multipartFile, message, taskId);
             return ResponseEntity.ok(ResponseDTO.success(200, "워터마크 삽입 성공", result));
 
         } catch (IllegalArgumentException e) {
@@ -56,10 +57,10 @@ public class WatermarkController {
     }
 
     @GetMapping
-    public ResponseEntity<ResponseDTO> getAllWatermarks(@AuthenticationPrincipal User user, @PageableDefault(size = 15, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable){
+    public ResponseEntity<ResponseDTO> getAllWatermarks(@AuthenticationPrincipal CustomUserDetails userDetails, @PageableDefault(size = 15, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable){
 
 
-        Page<InsertResultDTO> result = waterMarkService.getAllResult(user.getUserId(), pageable);
+        Page<InsertResultDTO> result = waterMarkService.getAllResult(userDetails.getUserId(), pageable);
         return ResponseEntity.ok(
                 ResponseDTO.success(200, "워터마크 삽입 기록 전체 조회 성공", result)
         );
@@ -67,16 +68,16 @@ public class WatermarkController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ResponseDTO> getWatermark(@PathVariable Long id, @AuthenticationPrincipal User user){
+    public ResponseEntity<ResponseDTO> getWatermark(@PathVariable Long id, @AuthenticationPrincipal CustomUserDetails userDetails){
 
-        InsertResultDTO result = waterMarkService.getSingleResult(user.getUserId(), id);
+        InsertResultDTO result = waterMarkService.getSingleResult(userDetails.getUserId(), id);
         return ResponseEntity.ok(ResponseDTO.success(200, "워터마크 삽입 기록 조회 성공", result));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<ResponseDTO> deleteWatermark(@PathVariable Long id, @AuthenticationPrincipal User user){
+    public ResponseEntity<ResponseDTO> deleteWatermark(@PathVariable Long id, @AuthenticationPrincipal CustomUserDetails userDetails){
 
-        waterMarkService.deleteWatermark(user.getUserId(), id);
+        waterMarkService.deleteWatermark(userDetails.getUserId(), id);
         return ResponseEntity.ok(
                 ResponseDTO.success(200, "워터마크 삽입 기록 삭제 성공", null)
         );

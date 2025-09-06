@@ -3,6 +3,7 @@ package com.deeptruth.deeptruth.controller;
 import com.deeptruth.deeptruth.base.dto.deepfake.DeepfakeDetectionDTO;
 import com.deeptruth.deeptruth.base.dto.deepfake.FlaskResponseDTO;
 import com.deeptruth.deeptruth.base.dto.response.ResponseDTO;
+import com.deeptruth.deeptruth.config.CustomUserDetails;
 import com.deeptruth.deeptruth.entity.User;
 import com.deeptruth.deeptruth.service.DeepfakeDetectionService;
 import com.deeptruth.deeptruth.service.UserService;
@@ -42,7 +43,7 @@ public class DeepfakeDetectionController {
 
     @PostMapping
     public ResponseEntity<ResponseDTO> detectVideo(
-            @AuthenticationPrincipal User user,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestPart("file")MultipartFile multipartFile,
             @RequestParam(required = false) String taskId,
             @RequestParam(required = false, defaultValue = "default") String mode,           // default | precision
@@ -97,11 +98,11 @@ public class DeepfakeDetectionController {
             String imageUrl = null;
 
             if (base64Image != null && !base64Image.isEmpty()) {
-                imageUrl = deepfakeDetectionService.uploadBase64ImageToS3(base64Image, user.getUserId());
+                imageUrl = deepfakeDetectionService.uploadBase64ImageToS3(base64Image, userDetails.getUserId());
                 flaskResult.setImageUrl(imageUrl);
             }
 
-            DeepfakeDetectionDTO dto = deepfakeDetectionService.createDetection(user.getUserId(), flaskResult);
+            DeepfakeDetectionDTO dto = deepfakeDetectionService.createDetection(userDetails.getUserId(), flaskResult);
 
             return ResponseEntity.ok(ResponseDTO.success(200, "딥페이크 탐지 결과 수신 성공", dto));
 
@@ -112,23 +113,24 @@ public class DeepfakeDetectionController {
     }
 
     @GetMapping
-    public ResponseEntity<ResponseDTO> getAllDetections(@AuthenticationPrincipal User user, @PageableDefault(size = 15, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable){
-        Page<DeepfakeDetectionDTO> result = deepfakeDetectionService.getAllResult(user.getUserId(), pageable);
+    public ResponseEntity<ResponseDTO> getAllDetections(@AuthenticationPrincipal CustomUserDetails userDetails,
+                                                        @PageableDefault(size = 15, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable){
+        Page<DeepfakeDetectionDTO> result = deepfakeDetectionService.getAllResult(userDetails.getUserId(), pageable);
         return ResponseEntity.ok(
                 ResponseDTO.success(200, "딥페이크 탐지 결과 전체 조회 성공", result)
         );
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> getDetection(@PathVariable Long id, @AuthenticationPrincipal User user) {
-        DeepfakeDetectionDTO result = deepfakeDetectionService.getSingleResult(user.getUserId(), id);
+    public ResponseEntity<?> getDetection(@PathVariable Long id, @AuthenticationPrincipal CustomUserDetails userDetails) {
+        DeepfakeDetectionDTO result = deepfakeDetectionService.getSingleResult(userDetails.getUserId(), id);
         return ResponseEntity.ok(ResponseDTO.success(200, "딥페이크 탐지 결과 조회 성공", result));
     }
 
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<ResponseDTO> deleteDetection(@PathVariable Long id, @AuthenticationPrincipal User user){
-        deepfakeDetectionService.deleteResult(user.getUserId(), id);
+    public ResponseEntity<ResponseDTO> deleteDetection(@PathVariable Long id, @AuthenticationPrincipal CustomUserDetails userDetails){
+        deepfakeDetectionService.deleteResult(userDetails.getUserId(), id);
         return ResponseEntity.ok(
                 ResponseDTO.success(200, "딥페이크 탐지 결과 삭제 성공", null)
         );
