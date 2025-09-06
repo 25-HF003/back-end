@@ -1,6 +1,7 @@
 package com.deeptruth.deeptruth.controller;
 
 import com.deeptruth.deeptruth.base.dto.deepfake.DeepfakeDetectionDTO;
+import com.deeptruth.deeptruth.base.dto.deepfake.DeepfakeDetectionListDTO;
 import com.deeptruth.deeptruth.base.dto.deepfake.FlaskResponseDTO;
 import com.deeptruth.deeptruth.base.dto.response.ResponseDTO;
 import com.deeptruth.deeptruth.entity.User;
@@ -24,7 +25,9 @@ import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
@@ -33,76 +36,14 @@ public class DeepfakeDetectionController {
 
     private final DeepfakeDetectionService deepfakeDetectionService;
 
-    private final UserService userService;
-
-    private final WebClient webClient;
-
-    @Value("${flask.deepfakeServer.url}")
-    private String flaskServerUrl;
-
     @PostMapping
     public ResponseEntity<ResponseDTO> detectVideo(
             @AuthenticationPrincipal User user,
             @RequestPart("file")MultipartFile multipartFile,
-            @RequestParam(required = false) String taskId,
-            @RequestParam(required = false, defaultValue = "default") String mode,           // default | precision
-            @RequestParam(required = false) Boolean useTta,
-            @RequestParam(required = false) Boolean useIllum,
-            @RequestParam(required = false) String detector,                                 // auto | dlib | dnn
-            @RequestParam(required = false) Integer smoothWindow,
-            @RequestParam(required = false) Integer minFace,
-            @RequestParam(required = false) Integer sampleCount){
+            @RequestParam(required = false) Map<String, String> params){
         try {
-
-            if (taskId == null || taskId.isBlank()) {
-                taskId = java.util.UUID.randomUUID().toString();
-            }
-
-            ByteArrayResource resource = new ByteArrayResource(multipartFile.getBytes()) {
-                @Override
-                public String getFilename() {
-                    return multipartFile.getOriginalFilename();
-                }
-            };
-
-            org.springframework.http.client.MultipartBodyBuilder mb = new org.springframework.http.client.MultipartBodyBuilder();
-            mb.part("file", resource)
-                    .filename(resource.getFilename())
-                    .contentType(multipartFile.getContentType() != null ? MediaType.parseMediaType(multipartFile.getContentType())
-                            : MediaType.APPLICATION_OCTET_STREAM);
-            mb.part("taskId", taskId);
-            // 옵션은 null 아닐 때만 전송 (Flask에서 preset 적용)
-            if (mode != null)             mb.part("mode", mode);
-            if (useTta != null)           mb.part("use_tta", String.valueOf(useTta));
-            if (useIllum != null)         mb.part("use_illum", String.valueOf(useIllum));
-            if (detector != null)         mb.part("detector", detector);
-            if (smoothWindow != null)     mb.part("smooth_window", String.valueOf(smoothWindow));
-            if (minFace != null)          mb.part("min_face", String.valueOf(minFace));
-            if (sampleCount != null)      mb.part("sample_count", String.valueOf(sampleCount));
-
-
-            FlaskResponseDTO flaskResult = webClient.post()
-                    .uri(flaskServerUrl + "/predict")
-                    .contentType(MediaType.MULTIPART_FORM_DATA)
-                    .body(BodyInserters.fromMultipartData(mb.build()))
-                    .retrieve()
-                    .bodyToMono(FlaskResponseDTO.class)
-                    .block();
-
-            if (flaskResult == null) {
-                return ResponseEntity.status(500).body(ResponseDTO.fail(500, "Flask 서버 응답 실패"));
-            }
-
-            String base64Image = flaskResult.getBase64Url();
-            String imageUrl = null;
-
-            if (base64Image != null && !base64Image.isEmpty()) {
-                imageUrl = deepfakeDetectionService.uploadBase64ImageToS3(base64Image, user.getUserId());
-                flaskResult.setImageUrl(imageUrl);
-            }
-
-            DeepfakeDetectionDTO dto = deepfakeDetectionService.createDetection(user.getUserId(), flaskResult);
-
+            Map<String, String> form = (params == null) ? new HashMap<>() : params;
+            DeepfakeDetectionDTO dto = deepfakeDetectionService.createDetection(user.getUserId(), multipartFile, form);
             return ResponseEntity.ok(ResponseDTO.success(200, "딥페이크 탐지 결과 수신 성공", dto));
 
         } catch (Exception e) {
@@ -113,7 +54,7 @@ public class DeepfakeDetectionController {
 
     @GetMapping
     public ResponseEntity<ResponseDTO> getAllDetections(@AuthenticationPrincipal User user, @PageableDefault(size = 15, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable){
-        Page<DeepfakeDetectionDTO> result = deepfakeDetectionService.getAllResult(user.getUserId(), pageable);
+        Page<DeepfakeDetectionListDTO> result = deepfakeDetectionService.getAllResult(user.getUserId(), pageable);
         return ResponseEntity.ok(
                 ResponseDTO.success(200, "딥페이크 탐지 결과 전체 조회 성공", result)
         );
