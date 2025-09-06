@@ -15,4 +15,5 @@ public class DetectResultDTO {
     private String detectedAt;
     private String uploadedImageBase64; // 임계 미달 시만
     private String basename;
+    private String taskId;
 }

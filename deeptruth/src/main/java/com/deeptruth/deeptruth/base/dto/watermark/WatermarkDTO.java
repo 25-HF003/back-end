@@ -15,12 +15,14 @@ public class WatermarkDTO {
     private String watermarkedFilePath;
     private String fileName;
     private LocalDateTime createdAt;
+    private String taskId;
 
     public static WatermarkDTO fromEntity(Watermark entity){
         return WatermarkDTO.builder()
                 .id(entity.getWatermarkId())
                 .fileName(entity.getFileName())
                 .createdAt(entity.getCreatedAt())
+                .taskId(entity.getTaskId())
                 .build();
     }
 }

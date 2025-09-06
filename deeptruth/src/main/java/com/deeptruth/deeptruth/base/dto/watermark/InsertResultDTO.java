@@ -18,6 +18,7 @@ public class InsertResultDTO {
     private String normalizedSha256;
     private Long phash;
     private LocalDateTime createdAt;
+    private String taskId;
 
     public static InsertResultDTO fromEntity(Watermark entity){
         return InsertResultDTO.builder()
@@ -30,6 +31,7 @@ public class InsertResultDTO {
                 .normalizedSha256(entity.getNormalizedSha256())
                 .phash(entity.getPhash())
                 .createdAt(entity.getCreatedAt())
+                .taskId(entity.getTaskId())
                 .build();
     }
 }
