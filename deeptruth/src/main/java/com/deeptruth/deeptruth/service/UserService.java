@@ -73,13 +73,13 @@ public class UserService {
 
         // 중복 검사
         if (userRepository.existsByLoginId(request.getLoginId())) {
-            throw new IllegalArgumentException(DUPLICATE_LOGIN_ID_MESSAGE);
+            throw new DuplicateLoginIdException(DUPLICATE_LOGIN_ID_MESSAGE);
         }
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new IllegalArgumentException(DUPLICATE_EMAIL_MESSAGE);
+            throw new DuplicateEmailException(DUPLICATE_EMAIL_MESSAGE);
         }
         if (userRepository.existsByNickname(request.getNickname())) {
-            throw new IllegalArgumentException(DUPLICATE_NICKNAME_MESSAGE);
+            throw new DuplicateNicknameException(DUPLICATE_NICKNAME_MESSAGE);
         }
 
         // 비밀번호 암호화
