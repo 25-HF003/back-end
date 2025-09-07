@@ -1,7 +1,6 @@
 package com.deeptruth.deeptruth.service;
 
 import com.deeptruth.deeptruth.base.dto.watermark.InsertResultDTO;
-import com.deeptruth.deeptruth.base.dto.watermark.WatermarkDTO;
 import com.deeptruth.deeptruth.base.dto.watermark.WatermarkFlaskResponseDTO;
 import com.deeptruth.deeptruth.base.exception.*;
 import com.deeptruth.deeptruth.entity.User;
@@ -29,9 +28,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.Base64;
-import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -47,7 +44,10 @@ public class WatermarkService {
 
     public InsertResultDTO insert(Long userId, MultipartFile file, String message, String taskId) {
         // 1) 유효성
-        if (message == null || message.length() > 4) {
+        if (message == null) {
+            throw new IllegalArgumentException("message는 null일 수 없습니다.");
+        }
+        if (message.length() > 4) {
             throw new IllegalArgumentException("message는 최대 4자입니다.");
         }
         if (taskId == null || taskId.isBlank()) {
@@ -55,6 +55,13 @@ public class WatermarkService {
         }
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException(userId));
+
+        if (file == null || file.isEmpty()) throw new FileEmptyException();
+        String contentType = (file.getContentType() != null) ? file.getContentType() : MediaType.APPLICATION_OCTET_STREAM_VALUE;
+        // image/* 만 허용
+        if (!(contentType.startsWith("image/") || MediaType.APPLICATION_OCTET_STREAM_VALUE.equals(contentType))) {
+            throw new UnsupportedMediaTypeException(contentType);
+        }
 
         // 2) 원본 바이트 & 해시 계산
         final byte[] original;
@@ -79,23 +86,35 @@ public class WatermarkService {
         builder.part("message", message);
         builder.part("taskId", taskId);
 
-        WatermarkFlaskResponseDTO flask = webClient.post()
-                .uri(flaskServerUrl + "/watermark-insert")
-                .contentType(MediaType.MULTIPART_FORM_DATA)
-                .body(BodyInserters.fromMultipartData(builder.build()))
-                .retrieve()
-                .bodyToMono(WatermarkFlaskResponseDTO.class)
-                .block();
+        WatermarkFlaskResponseDTO flask;
+        try {
+            flask = webClient.post()
+                    .uri(flaskServerUrl + "/watermark-insert")
+                    .contentType(MediaType.MULTIPART_FORM_DATA)
+                    .body(BodyInserters.fromMultipartData(builder.build()))
+                    .retrieve()
+                    .bodyToMono(WatermarkFlaskResponseDTO.class)
+                    .block();
+        } catch (org.springframework.web.reactive.function.client.WebClientResponseException e) {
+            // HTTP 4xx/5xx 응답
+            throw new ExternalServiceException(
+                    "Flask HTTP error: " + e.getRawStatusCode() + " " + e.getResponseBodyAsString());
+        } catch (org.springframework.web.reactive.function.client.WebClientRequestException e) {
+            // 연결 실패/타임아웃 등
+            throw new ExternalServiceException("Flask request failed: " + e.getMessage());
+        } catch (Exception e) {
+            throw new ExternalServiceException("Flask invocation failed");
+        }
 
         if (flask == null || flask.getImage_base64() == null || flask.getImage_base64().isBlank()) {
-            throw new RuntimeException("Flask 서버 응답이 비어 있습니다.");
+            throw new ExternalServiceException("Flask 서버 응답이 비어 있습니다.");
         }
 
         byte[] watermarkedBytes;
         try {
             watermarkedBytes = Base64.getDecoder().decode(flask.getImage_base64());
         } catch (IllegalArgumentException e) {
-            throw new RuntimeException("Flask 응답의 base64 디코딩 실패", e);
+            throw new ImageDecodingException("Flask 응답의 base64 디코딩 실패");
         }
 
         // 4) S3 업로드 (artifactId 기준 경로)
@@ -149,6 +168,7 @@ public class WatermarkService {
   
     public Page<InsertResultDTO> getAllResult(Long userId, Pageable pageable){
         userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException(userId));
+        if (pageable == null) throw new IllegalArgumentException("pageable은 null일 수 없습니다.");
         return watermarkRepository.findByUser_UserId(userId, pageable)
                 .map(InsertResultDTO::fromEntity);
     }
@@ -156,7 +176,8 @@ public class WatermarkService {
     public InsertResultDTO getSingleResult(Long userId, Long id){
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException(userId));
-        Watermark mark = watermarkRepository.findByWatermarkIdAndUser(id, user).orElseThrow();
+        Watermark mark = watermarkRepository.findByWatermarkIdAndUser(id, user)
+                .orElseThrow(() -> new WatermarkNotFoundException(id, userId));
 
         return InsertResultDTO.fromEntity(mark);
     }
