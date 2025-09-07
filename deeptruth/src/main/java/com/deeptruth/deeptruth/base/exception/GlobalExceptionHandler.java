@@ -21,7 +21,7 @@ public class GlobalExceptionHandler {
     }
 
     // 401 - 인증 실패
-    @ExceptionHandler(UserNotFoundException.class)
+    @ExceptionHandler({UserNotFoundException.class, UnauthorizedException.class})
     public ResponseEntity<ResponseDTO> handleUserNotFoundException(RuntimeException ex) {
         log.info("[401] {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
