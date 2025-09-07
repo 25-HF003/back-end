@@ -44,7 +44,7 @@ public class WatermarkService {
 
     public InsertResultDTO insert(Long userId, MultipartFile file, String message, String taskId) {
         // 1) 유효성
-        if (message == null) {
+        if (message == null | message.isBlank()) {
             throw new IllegalArgumentException("message는 null일 수 없습니다.");
         }
         if (message.length() > 4) {

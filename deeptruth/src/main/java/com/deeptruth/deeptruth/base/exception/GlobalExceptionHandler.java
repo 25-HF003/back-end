@@ -44,7 +44,7 @@ public class GlobalExceptionHandler {
     }
 
     // 404 - 리소스 없음
-    @ExceptionHandler({DetectionNotFoundException.class, WatermarkNotFoundException.class, NoiseNotFoundException.class})
+    @ExceptionHandler({DetectionNotFoundException.class, WatermarkNotFoundException.class, NoiseNotFoundException.class, ArtifactNotFoundException.class})
     public ResponseEntity<ResponseDTO> handleResourceNotFound(RuntimeException ex) {
         log.info("[404] {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -71,7 +71,7 @@ public class GlobalExceptionHandler {
     }
 
     // 422 - 처리할 수 없는 엔티티 (유효성은 맞지만 비즈니스 규칙 위반)
-    @ExceptionHandler({InvalidDetectionResponseException.class, InvalidWatermarkResponseException.class, DataCorruptionException.class, DataMappingException.class})
+    @ExceptionHandler({InvalidDetectionResponseException.class, InvalidWatermarkResponseException.class, DataCorruptionException.class, DataMappingException.class, SimilarityThresholdExceededException.class})
     public ResponseEntity<ResponseDTO> handleUnprocessableEntity(RuntimeException ex) {
         log.info("[422] {}", ex.getMessage());
         return ResponseEntity
