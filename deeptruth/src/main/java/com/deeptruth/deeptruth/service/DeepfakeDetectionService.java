@@ -2,7 +2,6 @@ package com.deeptruth.deeptruth.service;
 
 import com.deeptruth.deeptruth.base.Enum.DeepfakeDetector;
 import com.deeptruth.deeptruth.base.Enum.DeepfakeMode;
-import com.deeptruth.deeptruth.base.Enum.DeepfakeResult;
 import com.deeptruth.deeptruth.base.dto.deepfake.BulletDTO;
 import com.deeptruth.deeptruth.base.dto.deepfake.DeepfakeDetectionDTO;
 import com.deeptruth.deeptruth.base.dto.deepfake.DeepfakeDetectionListDTO;
@@ -13,9 +12,7 @@ import com.deeptruth.deeptruth.entity.User;
 import com.deeptruth.deeptruth.repository.DeepfakeDetectionRepository;
 import com.deeptruth.deeptruth.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import net.minidev.json.JSONUtil;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.ByteArrayResource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
@@ -29,7 +26,6 @@ import org.springframework.web.reactive.function.client.WebClient;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 @Transactional
