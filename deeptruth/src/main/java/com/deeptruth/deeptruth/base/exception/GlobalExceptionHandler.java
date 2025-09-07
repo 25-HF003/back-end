@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 public class GlobalExceptionHandler {
     // 400 - 잘못된 요청
     @ExceptionHandler({InvalidFileException.class, ImageDecodingException.class,
-            IllegalArgumentException.class})
+            IllegalArgumentException.class, FileEmptyException.class, InvalidFilenameException.class})
     public ResponseEntity<ResponseDTO> handleBadRequest(RuntimeException ex) {
         log.info("[400] {}", ex.getMessage());
         return ResponseEntity
@@ -61,6 +61,15 @@ public class GlobalExceptionHandler {
                 .body(ResponseDTO.fail(409, ex.getMessage()));
     }
 
+    // 415 Unsupported Media Type
+    @ExceptionHandler(UnsupportedMediaTypeException.class)
+    public ResponseEntity<ResponseDTO<Void>> handleUnsupported(UnsupportedMediaTypeException ex) {
+        log.info("[415] {}", ex.getMessage());
+        return ResponseEntity
+                .status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
+                .body(ResponseDTO.fail(HttpStatus.UNSUPPORTED_MEDIA_TYPE.value(), ex.getMessage()));
+    }
+
     // 422 - 처리할 수 없는 엔티티 (유효성은 맞지만 비즈니스 규칙 위반)
     @ExceptionHandler({InvalidDetectionResponseException.class, InvalidWatermarkResponseException.class})
     public ResponseEntity<ResponseDTO> handleUnprocessableEntity(RuntimeException ex) {
@@ -71,7 +80,7 @@ public class GlobalExceptionHandler {
     }
 
     // 5xx - 서버/외부 연동 문제
-    @ExceptionHandler({StorageException.class, ExternalServiceException.class})
+    @ExceptionHandler({StorageException.class, ExternalServiceException.class, S3UploadFailedException.class})
     public ResponseEntity<ResponseDTO> handleServerError(RuntimeException ex) {
         log.error("[502] {}", ex.getMessage(), ex);
         return ResponseEntity

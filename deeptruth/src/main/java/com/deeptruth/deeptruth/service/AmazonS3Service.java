@@ -4,6 +4,10 @@ import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.CannedAccessControlList;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.deeptruth.deeptruth.base.exception.FileEmptyException;
+import com.deeptruth.deeptruth.base.exception.InvalidFilenameException;
+import com.deeptruth.deeptruth.base.exception.S3UploadFailedException;
+import com.deeptruth.deeptruth.base.exception.UnsupportedMediaTypeException;
 import com.deeptruth.deeptruth.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,6 +17,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Set;
 import java.util.UUID;
 
 @Slf4j
@@ -27,8 +32,35 @@ public class AmazonS3Service {
 
     private final UserRepository userRepository;
 
+    private static final Set<String> ALLOWED_PREFIXES = Set.of("image/", "video/", "application/octet-stream");
+
+    private void validateMultipart(MultipartFile file) {
+        if (file == null || file.isEmpty()) throw new FileEmptyException();
+
+        String contentType = file.getContentType();
+        if (contentType == null || ALLOWED_PREFIXES.stream().noneMatch(contentType::startsWith)) {
+            throw new UnsupportedMediaTypeException(contentType);
+        }
+        String original = file.getOriginalFilename();
+        if (original == null || original.isBlank() || !original.contains(".")) {
+            throw new InvalidFilenameException(String.valueOf(original));
+        }
+    }
+
+    private String buildKey(String folder, String originalFilename) {
+        int dot = originalFilename.lastIndexOf('.');
+        if (dot < 0 || dot == originalFilename.length() - 1) {
+            throw new InvalidFilenameException(originalFilename);
+        }
+        String ext = originalFilename.substring(dot + 1);
+        return folder + "/" + UUID.randomUUID() + "." + ext;
+    }
+
     public String uploadFile(String folder, MultipartFile multipartFile) {
+        validateMultipart(multipartFile);
+
         String uploadFileUrl = "";
+        String keyName = null;
 
         ObjectMetadata objectMetadata = new ObjectMetadata();
         objectMetadata.setContentLength(multipartFile.getSize());
@@ -36,7 +68,7 @@ public class AmazonS3Service {
 
         try (InputStream inputStream = multipartFile.getInputStream()) {
 
-            String keyName = folder + "/" + UUID.randomUUID() + "." + multipartFile.getOriginalFilename();
+            keyName = buildKey(folder, multipartFile.getOriginalFilename());
 
             // S3에 폴더 및 파일 업로드
             amazonS3Client.putObject(
@@ -46,9 +78,9 @@ public class AmazonS3Service {
             // S3에 업로드한 폴더 및 파일 URL
             uploadFileUrl = amazonS3Client.getUrl(bucketName, keyName).toString();
 
-        } catch (IOException e) {
-            e.printStackTrace();
-            log.error("Filed upload failed", e);
+        } catch (IOException | RuntimeException e) {
+            log.error("S3 업로드 실패 (key: {})", keyName, e);
+            throw new S3UploadFailedException(keyName, e);
         }
 
         return uploadFileUrl;
@@ -66,9 +98,9 @@ public class AmazonS3Service {
             );
 
             return amazonS3Client.getUrl(bucketName, key).toString();
-        } catch (IOException e) {
-            log.error("이미지 업로드 실패", e);
-            throw new RuntimeException("S3 이미지 업로드 실패", e);
+        } catch (IOException | RuntimeException e) {
+            log.error("S3 이미지 업로드 실패 (key: {})", key, e);
+            throw new S3UploadFailedException(key, e);
         }
     }
 
@@ -102,9 +134,9 @@ public class AmazonS3Service {
 
             return amazonS3Client.getUrl(bucketName, key).toString();
 
-        } catch (IOException e) {
+        } catch (IOException | RuntimeException e) {
             log.error("S3 업로드 실패 (key: {})", key, e);
-            throw new RuntimeException("S3 업로드 실패", e);
+            throw new S3UploadFailedException(key, e);
         }
     }
 
