@@ -49,6 +49,15 @@ public class DeepfakeDetectionService {
                                                 Map<String, String> form){
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException(userId));
+        if (file == null || file.isEmpty()) throw new FileEmptyException();
+
+        String contentType = file.getContentType();
+        if (contentType == null) contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE;
+
+        if (!(contentType.startsWith("image/") || contentType.startsWith("video/")
+                || MediaType.APPLICATION_OCTET_STREAM_VALUE.equals(contentType))) {
+            throw new UnsupportedMediaTypeException(contentType);
+        }
 
         String taskId = form.getOrDefault("taskId", UUID.randomUUID().toString());
 
@@ -69,13 +78,25 @@ public class DeepfakeDetectionService {
 //        passThrough(mb, "target_fps", form.get("target_fps"));
 //        passThrough(mb, "max_latency_ms", form.get("max_latency_ms"));
 
-        FlaskResponseDTO flaskResult = webClient.post()
-                .uri(flaskServerUrl + "/predict")
-                .contentType(MediaType.MULTIPART_FORM_DATA)
-                .body(BodyInserters.fromMultipartData(mb.build()))
-                .retrieve()
-                .bodyToMono(FlaskResponseDTO.class)
-                .block();
+        FlaskResponseDTO flaskResult;
+        try {
+            flaskResult = webClient.post()
+                    .uri(flaskServerUrl + "/predict")
+                    .contentType(MediaType.MULTIPART_FORM_DATA)
+                    .body(BodyInserters.fromMultipartData(mb.build()))
+                    .retrieve()
+                    .bodyToMono(FlaskResponseDTO.class)
+                    .block();
+        } catch (org.springframework.web.reactive.function.client.WebClientResponseException e) {
+            // HTTP 응답은 왔지만 4xx/5xx
+            throw new ExternalServiceException("Flask HTTP error: " + e.getRawStatusCode() + " " + e.getResponseBodyAsString());
+        } catch (org.springframework.web.reactive.function.client.WebClientRequestException e) {
+            // 연결 실패/타임아웃 등
+            throw new ExternalServiceException("Flask request failed: " + e.getMessage());
+        }  catch (Exception e) {
+            throw new ExternalServiceException("Flask invocation failed");
+        }
+
 
         if (flaskResult == null) {
             throw new ExternalServiceException("Flask response is null");
@@ -90,6 +111,9 @@ public class DeepfakeDetectionService {
         DeepfakeDetection entity = mapToEntity(user, flaskResult);
         List<BulletDTO> stability = assembler.makeStabilityBullets(entity);
         List<BulletDTO> speed     = assembler.makeSpeedBullets(entity);
+        if (stability == null || speed == null) {
+            throw new DataMappingException("bullet assembling failed");
+        }
         entity.setStabilityScore(DeepfakeViewAssembler.meanScore(stability));
         entity.setSpeedScore(DeepfakeViewAssembler.meanScore(speed));
         deepfakeDetectionRepository.save(entity);
@@ -121,6 +145,10 @@ public class DeepfakeDetectionService {
     }
 
     private DeepfakeDetection mapToEntity(User user, FlaskResponseDTO flaskResponseDTO) {
+        if (flaskResponseDTO == null) throw new DataMappingException("flask response is null");
+        if (flaskResponseDTO.getTaskId() == null || flaskResponseDTO.getImageUrl() == null || flaskResponseDTO.getResult() == null) {
+            throw new DataMappingException("required fields missing in flask response");
+        }
         DeepfakeDetection detection = new DeepfakeDetection();
         detection.setUser(user);
         detection.setTaskId(flaskResponseDTO.getTaskId());
@@ -160,8 +188,20 @@ public class DeepfakeDetectionService {
         }
 
         // 실행 환경/프로비넌스
-        if (flaskResponseDTO.getMode() != null) detection.setMode(DeepfakeMode.valueOf(flaskResponseDTO.getMode().toUpperCase()));
-        if (flaskResponseDTO.getDetector() != null) detection.setDetector(DeepfakeDetector.valueOf(flaskResponseDTO.getDetector().toUpperCase()));
+        if (flaskResponseDTO.getMode() != null) {
+            try {
+                detection.setMode(DeepfakeMode.valueOf(flaskResponseDTO.getMode().toUpperCase()));
+            } catch (IllegalArgumentException ex) {
+                throw new InvalidEnumValueException("mode", flaskResponseDTO.getMode());
+            }
+        }
+        if (flaskResponseDTO.getDetector() != null) {
+            try {
+                detection.setDetector(DeepfakeDetector.valueOf(flaskResponseDTO.getDetector().toUpperCase()));
+            } catch (IllegalArgumentException ex) {
+                throw new InvalidEnumValueException("detector", flaskResponseDTO.getDetector());
+            }
+        }
         detection.setUseTta(flaskResponseDTO.getUseTta());
         detection.setUseIllum(flaskResponseDTO.getUseIllum());
         detection.setMinFace(flaskResponseDTO.getMinFace());
@@ -194,6 +234,7 @@ public class DeepfakeDetectionService {
 
     public Page<DeepfakeDetectionListDTO> getAllResult(Long userId, Pageable pageable){
         userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException(userId));
+        if (pageable == null) throw new DataMappingException("pageable is null");
         return deepfakeDetectionRepository.findByUser_UserId(userId, pageable)
                 .map(DeepfakeDetectionListDTO::fromEntity);
     }
@@ -208,12 +249,22 @@ public class DeepfakeDetectionService {
 
         List<BulletDTO> stability = assembler.makeStabilityBullets(entity);
         List<BulletDTO> speed     = assembler.makeSpeedBullets(entity);
+
+        if (stability == null || speed == null) {
+            throw new DataCorruptionException("Bullet assembling failed: null list");
+        }
+
         return DeepfakeDetectionDTO.fromEntity(entity, stability, speed);
     }
 
     public void deleteResult(Long userId, Long id){
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException(userId));
+
+        DeepfakeDetection entity = deepfakeDetectionRepository
+                .findByDeepfakeDetectionIdAndUser(id, user)
+                .orElseThrow(() -> new DetectionNotFoundException(id, userId));
+
         int deleted = deepfakeDetectionRepository.deleteByDeepfakeDetectionIdAndUser(id, user);
         if (deleted == 0) {
             throw new DetectionNotFoundException(id, userId);

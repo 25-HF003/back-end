@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 public class GlobalExceptionHandler {
     // 400 - 잘못된 요청
     @ExceptionHandler({InvalidFileException.class, ImageDecodingException.class,
-            IllegalArgumentException.class, FileEmptyException.class, InvalidFilenameException.class})
+            IllegalArgumentException.class, FileEmptyException.class, InvalidFilenameException.class, InvalidEnumValueException.class})
     public ResponseEntity<ResponseDTO> handleBadRequest(RuntimeException ex) {
         log.info("[400] {}", ex.getMessage());
         return ResponseEntity
@@ -71,7 +71,7 @@ public class GlobalExceptionHandler {
     }
 
     // 422 - 처리할 수 없는 엔티티 (유효성은 맞지만 비즈니스 규칙 위반)
-    @ExceptionHandler({InvalidDetectionResponseException.class, InvalidWatermarkResponseException.class})
+    @ExceptionHandler({InvalidDetectionResponseException.class, InvalidWatermarkResponseException.class, DataCorruptionException.class, DataMappingException.class})
     public ResponseEntity<ResponseDTO> handleUnprocessableEntity(RuntimeException ex) {
         log.info("[422] {}", ex.getMessage());
         return ResponseEntity
