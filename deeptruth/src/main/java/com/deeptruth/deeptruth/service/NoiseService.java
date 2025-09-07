@@ -140,7 +140,7 @@ public class NoiseService {
 
     public List<NoiseDTO> getUserNoiseHistory(Long userId) {
         if (!userRepository.existsById(userId)) {
-            throw new IllegalArgumentException("사용자가 존재하지 않습니다.");
+            throw new UserNotFoundException(userId);
         }
 
         List<Noise> noises = noiseRepository.findAllByUser_UserId(userId);

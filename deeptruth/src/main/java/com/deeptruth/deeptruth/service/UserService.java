@@ -134,7 +134,7 @@ public class UserService {
 
         // 사용자 조회
         User user = userRepository.findByLoginId(loginRequestDTO.getLoginId())
-                .orElseThrow(() -> new UserNotFoundException(null));
+                .orElseThrow(() -> new UnauthorizedException(USER_NOT_FOUND_MESSAGE));
 
         // 비밀번호 검증
         if (!passwordEncoder.matches(loginRequestDTO.getPassword(), user.getPassword())) {
@@ -176,17 +176,17 @@ public class UserService {
     public LoginResponse refreshAccessToken(String refreshToken) {
         // 1. Refresh Token 유효성 검증
         if (!jwtUtil.validateToken(refreshToken)) {
-            throw new IllegalArgumentException("유효하지 않은 Refresh Token입니다.");
+            throw new UnauthorizedException(INVALID_REFRESH_TOKEN_MESSAGE);
         }
 
         // 2. DB에서 Refresh Token 확인
         RefreshToken storedToken = refreshTokenRepository.findByToken(refreshToken)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 Refresh Token입니다."));
+                .orElseThrow(() -> new UnauthorizedException(NOT_FOUND_REFRESH_TOKEN_MESSAGE));
 
         // 3. 만료 여부 확인
         if (storedToken.isExpired()) {
             refreshTokenRepository.delete(storedToken); // 만료된 토큰 삭제
-            throw new IllegalArgumentException("만료된 Refresh Token입니다.");
+            throw new UnauthorizedException(EXPIRED_REFRESH_TOKEN_MESSAGE);
         }
 
         // 4. 사용자 정보로 새로운 Access Token 생성
@@ -205,11 +205,11 @@ public class UserService {
 
     public void logout(String refreshToken) {
         if (refreshToken == null || refreshToken.trim().isEmpty()) {
-            throw new IllegalArgumentException("Refresh Token이 필요합니다.");
+            throw new UnauthorizedException(MISSING_REFRESH_TOKEN_MESSAGE);
         }
 
         if (!jwtUtil.validateToken(refreshToken)) {
-            throw new IllegalArgumentException("유효하지 않은 Refresh Token입니다.");
+            throw new UnauthorizedException(INVALID_REFRESH_TOKEN_MESSAGE);
         }
 
         Optional<RefreshToken> storedToken = refreshTokenRepository.findByToken(refreshToken);
@@ -217,7 +217,7 @@ public class UserService {
         if (storedToken.isPresent()) {
             refreshTokenRepository.delete(storedToken.get());
         } else {
-            throw new IllegalArgumentException("이미 로그아웃되었거나 존재하지 않는 Refresh Token입니다.");
+            throw new UnauthorizedException(LOGOUT_INVALID_TOKEN_MESSAGE);
         }
     }
 

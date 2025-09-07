@@ -21,15 +21,8 @@ public class GlobalExceptionHandler {
     }
 
     // 401 - 인증 실패
-    @ExceptionHandler({UserNotFoundException.class, UnauthorizedException.class})
+    @ExceptionHandler({UnauthorizedException.class, InvalidPasswordException.class})
     public ResponseEntity<ResponseDTO> handleUserNotFoundException(RuntimeException ex) {
-        log.info("[401] {}", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(ResponseDTO.fail(401, "존재하지 않는 회원입니다."));
-    }
-
-    @ExceptionHandler({InvalidPasswordException.class})
-    public ResponseEntity<ResponseDTO> handleInvalidPassword(RuntimeException ex) {
         log.info("[401] {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(ResponseDTO.fail(401, ex.getMessage()));
@@ -44,7 +37,8 @@ public class GlobalExceptionHandler {
     }
 
     // 404 - 리소스 없음
-    @ExceptionHandler({DetectionNotFoundException.class, WatermarkNotFoundException.class, NoiseNotFoundException.class, ArtifactNotFoundException.class})
+    @ExceptionHandler({UserNotFoundException.class, DetectionNotFoundException.class, WatermarkNotFoundException.class,
+            NoiseNotFoundException.class, ArtifactNotFoundException.class})
     public ResponseEntity<ResponseDTO> handleResourceNotFound(RuntimeException ex) {
         log.info("[404] {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
