@@ -23,19 +23,7 @@ public class WatermarkDetectionController {
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestPart("file") MultipartFile file,
             @RequestParam(required = false) String taskId) {
-        if (userDetails == null) {
-            return ResponseEntity.status(401)
-                    .body(ResponseDTO.fail(401, "인증이 필요합니다."));
-        }
-        try {
             DetectResultDTO result = detectionService.detect(userDetails.getUserId(), file, taskId);
             return ResponseEntity.ok(ResponseDTO.success(200, "워터마크 탐지 성공", result));
-        } catch (IllegalStateException ex) {
-            return ResponseEntity.status(404)
-                    .body(ResponseDTO.fail(404, ex.getMessage()));
-        } catch (Exception e) {
-            return ResponseEntity.status(502)
-                    .body(ResponseDTO.fail(502, "서버 오류: " + e.getMessage()));
-        }
     }
 }
