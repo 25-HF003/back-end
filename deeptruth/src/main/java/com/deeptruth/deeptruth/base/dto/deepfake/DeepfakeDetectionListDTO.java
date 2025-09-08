@@ -24,6 +24,7 @@ public class DeepfakeDetectionListDTO {
                 .taskId(entity.getTaskId())
                 .filePath(entity.getFilePath())
                 .result(entity.getResult())
+                .createdAt(entity.getCreatedAt())
                 .deepfakeMode(entity.getMode())
                 .build();
     }
