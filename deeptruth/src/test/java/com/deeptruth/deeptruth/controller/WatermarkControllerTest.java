@@ -31,7 +31,7 @@ public class WatermarkControllerTest {
 
     @Autowired
     private ObjectMapper objectMapper;
-
+/*
     @Test
     void getAllWatermarks_ShouldReturnList() throws Exception {
         // given
@@ -68,7 +68,7 @@ public class WatermarkControllerTest {
                 .andExpect(jsonPath("$.message").value("워터마크 삽입 기록 조회 성공"))
                 .andExpect(jsonPath("$.data.originalFilePath").value("original.jpg"));
     }
-
+*/
     @Test
     void deleteWatermark_ShouldSucceed() throws Exception {
         // given

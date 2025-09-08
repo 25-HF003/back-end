@@ -69,7 +69,7 @@ public class UserController {
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestBody UserUpdateRequest request) {
 
-        User user = userDetails.getUser();  // UserNotFoundException 발생 가능
+        User user = userDetails.getUser();  // UnauthorizedException 발생 가능
         userService.updateUser(user, request);         // DuplicateNicknameException 발생 가능
 
         return ResponseEntity.ok(
