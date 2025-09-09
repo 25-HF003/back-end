@@ -66,11 +66,11 @@ public class DeepfakeDetectionService {
         passThrough(mb, "taskId", taskId);
         passThrough(mb, "mode", form.get("mode"));
         passThrough(mb, "detector", form.get("detector"));
-        passThrough(mb, "use_tta", form.get("use_tta"));
-        passThrough(mb, "use_illum", form.get("use_illum"));
-        passThrough(mb, "min_face", form.get("min_face"));
-        passThrough(mb, "sample_count", form.get("sample_count"));
-        passThrough(mb, "smooth_window", form.get("smooth_window"));
+        passThrough(mb, "useTta", form.get("use_tta"));
+        passThrough(mb, "useIllum", form.get("use_illum"));
+        passThrough(mb, "minFace", form.get("min_face"));
+        passThrough(mb, "sampleCount", form.get("sample_count"));
+        passThrough(mb, "smoothWindow", form.get("smooth_window"));
 //        passThrough(mb, "target_fps", form.get("target_fps"));
 //        passThrough(mb, "max_latency_ms", form.get("max_latency_ms"));
 
