@@ -64,13 +64,13 @@ public class DeepfakeDetectionService {
                         : MediaType.APPLICATION_OCTET_STREAM);
 
         passThrough(mb, "taskId", taskId);
-        passThrough(mb, "mode", form.get("mode"));
+        passThrough(mb, "mode", form.get("mode").toLowerCase());
         passThrough(mb, "detector", form.get("detector"));
-        passThrough(mb, "useTta", form.get("use_tta"));
-        passThrough(mb, "useIllum", form.get("use_illum"));
-        passThrough(mb, "minFace", form.get("min_face"));
-        passThrough(mb, "sampleCount", form.get("sample_count"));
-        passThrough(mb, "smoothWindow", form.get("smooth_window"));
+        passThrough(mb, "use_tta", form.get("useTta"));
+        passThrough(mb, "use_illum", form.get("useIllum"));
+        passThrough(mb, "min_face", form.get("minFace"));
+        passThrough(mb, "sample_count", form.get("sampleCount"));
+        passThrough(mb, "smooth_window", form.get("smoothWindow"));
 //        passThrough(mb, "target_fps", form.get("target_fps"));
 //        passThrough(mb, "max_latency_ms", form.get("max_latency_ms"));
 
