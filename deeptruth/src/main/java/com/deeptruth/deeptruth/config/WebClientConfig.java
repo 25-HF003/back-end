@@ -22,7 +22,7 @@ public class WebClientConfig {
                 // 연결 타임아웃 (TCP connect)
                 .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 10_000)       // 10초
                 // 서버 응답 헤더 받을 때까지의 타임아웃
-                .responseTimeout(Duration.ofMinutes(10))                   // 120초
+                .responseTimeout(Duration.ofMinutes(10))
                 // 데이터 송수신 타임아웃(스트림 단계)
                 .doOnConnected(conn -> conn
                         .addHandlerLast(new ReadTimeoutHandler(600, TimeUnit.SECONDS))
