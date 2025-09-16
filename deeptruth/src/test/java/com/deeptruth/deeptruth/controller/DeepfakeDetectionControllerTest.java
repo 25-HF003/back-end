@@ -2,132 +2,126 @@ package com.deeptruth.deeptruth.controller;
 
 import com.deeptruth.deeptruth.base.Enum.DeepfakeResult;
 import com.deeptruth.deeptruth.base.dto.deepfake.DeepfakeDetectionDTO;
+import com.deeptruth.deeptruth.config.JwtAuthenticationFilter;
+import com.deeptruth.deeptruth.config.SecurityConfig;
 import com.deeptruth.deeptruth.service.DeepfakeDetectionService;
-import org.hamcrest.Matchers;
+import com.deeptruth.deeptruth.testsecurity.WithMockCustomUser;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.FilterType;
+import org.springframework.data.domain.Page;
+import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
-import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.web.multipart.MultipartFile;
-import static org.mockito.ArgumentMatchers.any;
 
-import java.time.LocalDateTime;
-import java.util.List;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(DeepfakeDetectionController.class)
+@WebMvcTest(
+        controllers = DeepfakeDetectionController.class,
+        excludeFilters = {
+                @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = {
+                        SecurityConfig.class,
+                        JwtAuthenticationFilter.class
+                })
+        }
+)@AutoConfigureMockMvc(addFilters = false)
 public class DeepfakeDetectionControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @Mock
-    private DeepfakeDetectionService deepfakeDetectionService;
-/*
+    @MockitoBean private DeepfakeDetectionService deepfakeDetectionService;
+
     @Test
-    @DisplayName("영상을 업로드한다")
-    @WithMockUser(username = "testuser@example.com", roles = {"USER"})
+    @DisplayName("POST /api/deepfake - 딥페이크 탐지 성공")
+    @WithMockCustomUser(userId = 7L, role = "USER")
     void uploadVideo_ShouldReturn200AndResponseDTO() throws Exception {
         // given
-        Long userId = 1L;
-        DeepfakeResult deepfakeResult = DeepfakeResult.FAKE;
-        Float riskScore = 0.7F;
-        MockMultipartFile file = new MockMultipartFile("file", "video.mp4", "video/mp4", "fake video content".getBytes());
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "video.mp4", "video/mp4", "bytes".getBytes()
+        );
 
-        DeepfakeDetectionDTO mockDto = DeepfakeDetectionDTO.builder()
-                .filePath("https://s3.amazonaws.com/deepfake/video.mp4")
-                .result(deepfakeResult)
-                .build();
-
-        given(deepfakeDetectionService.uploadVideo(eq(userId), any(MultipartFile.class)))
-                .willReturn(mockDto);
-
-
-        // when & then
-        mockMvc.perform(multipart("/deepfake")
-                        .file(file)
-                        .with(csrf())
-                        .param("userId", userId.toString()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value(200))
-                .andExpect(jsonPath("$.message").value("딥페이크 탐지 영상 업로드 성공"))
-                .andExpect(jsonPath("$.data.filePath").value("https://s3.amazonaws.com/deepfake/video.mp4"))
-                .andExpect(jsonPath("$.data.result").value(Matchers.containsString("FAKE")))
-                .andExpect(jsonPath("$.data.riskScore").value(riskScore));
-    }
-*/
-    @Test
-    @DisplayName("딥페이크 탐지 결과를 조회한다")
-    @WithMockUser(username = "testuser@example.com", roles = {"USER"})
-    void getDeepfakeDetections_success() throws Exception {
-        Long userId = 1L;
-        DeepfakeDetectionDTO dto = DeepfakeDetectionDTO.builder()
-                .id(1L)
-                .filePath("test/path.mp4")
-                .result(DeepfakeResult.FAKE)
-                .createdAt(LocalDateTime.now())
-                .build();
-
-//        Mockito.when(deepfakeDetectionService.getAllResult(userId))
-//                .thenReturn(List.of(dto));
-
-        mockMvc.perform(get("/deepfake")
-                        .param("userId", String.valueOf(userId)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value(200))
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.message").value("딥페이크 탐지 결과 전체 조회 성공"))
-                .andExpect(jsonPath("$.data[0].filePath").value("test/path.mp4"));
-    }
-
-    @Test
-    @DisplayName("특정 딥페이크 탐지 결과를 조회한다")
-    @WithMockUser(username = "testuser@example.com", roles = {"USER"})
-    void getSingleDeepfakeDetection_success() throws Exception {
-        Long id = 1L;
-        Long userId = 1L;
 
         DeepfakeDetectionDTO dto = DeepfakeDetectionDTO.builder()
-                .id(id)
-                .filePath("test/path.mp4")
+                .taskId("task-123")
+                .filePath("s3://fake/video.mp4")
                 .result(DeepfakeResult.FAKE)
-                .createdAt(LocalDateTime.now())
                 .build();
-
-        Mockito.when(deepfakeDetectionService.getSingleResult(userId, id))
+        when(deepfakeDetectionService.createDetection(eq(7L), any(), anyMap()))
                 .thenReturn(dto);
 
-        mockMvc.perform(get("/deepfake/{id}", id)
-                        .param("userId", String.valueOf(userId)))
+        // when & then
+        mockMvc.perform(multipart("/api/deepfake")
+                        .file(file)
+                        .param("taskId", "task-123")
+                        .param("mode", "video")
+                        .contentType(MediaType.MULTIPART_FORM_DATA))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.status").value(200))
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("딥페이크 탐지 결과 수신 성공"))
+                .andExpect(jsonPath("$.data").exists());
+    }
+
+    @Test
+    @DisplayName("GET /api/deepfake - 리스트 조회 성공")
+    @WithMockCustomUser(userId = 7L, role = "USER")
+    void getDeepfakeDetections_success() throws Exception {
+        // given
+        DeepfakeDetectionDTO dto = DeepfakeDetectionDTO.builder()
+                .taskId("task-abc")
+                .filePath("s3://bucket/sample.jpg")
+                .result(DeepfakeResult.REAL)
+                .build();
+
+        // when
+        when(deepfakeDetectionService.getSingleResult(eq(7L), eq(10L)))
+                .thenReturn(dto);
+
+        // then
+        mockMvc.perform(get("/api/deepfake/{id}", 10L))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value(200))
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("딥페이크 탐지 결과 조회 성공"))
-                .andExpect(jsonPath("$.data.filePath").value("test/path.mp4"));
+                .andExpect(jsonPath("$.data.taskId").value("task-abc"))
+                .andExpect(jsonPath("$.data.result").value("REAL"));
+    }
+
+    @Test
+    @DisplayName("GET /api/deepfake - 페이지 조회 성공")
+    @WithMockCustomUser(userId = 7L, role = "USER")
+    void getSingleDeepfakeDetection_success() throws Exception {
+        // when
+        when(deepfakeDetectionService.getAllResult(eq(7L), any()))
+                .thenAnswer(inv -> Page.empty());
+
+        // then
+        mockMvc.perform(get("/api/deepfake"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value(200))
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("딥페이크 탐지 결과 전체 조회 성공"))
+                .andExpect(jsonPath("$.data").exists());
     }
 
 
     @Test
-    @DisplayName("딥페이크 탐지 결과를 삭제한다")
-    @WithMockUser(username = "testuser@example.com", roles = {"USER"})
+    @DisplayName("DELETE /api/deepfake/{id} - 삭제 성공")
+    @WithMockCustomUser(userId = 7L, role = "USER")
     void deleteDeepfakeDetection_success() throws Exception {
-        Long id = 1L;
-        Long userId = 1L;
-
-        mockMvc.perform(delete("/deepfake/{id}", id)
-                        .param("userId", String.valueOf(userId))
-                        .with(csrf()))
-                        .andExpect(status().isOk())
-                        .andExpect(jsonPath("$.status").value(200))
-                        .andExpect(jsonPath("$.success").value(true))
-                        .andExpect(jsonPath("$.message").value("딥페이크 탐지 결과 삭제 성공"));
+        mockMvc.perform(delete("/api/deepfake/{id}", 99L))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value(200))
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("딥페이크 탐지 결과 삭제 성공"));
     }
 }
