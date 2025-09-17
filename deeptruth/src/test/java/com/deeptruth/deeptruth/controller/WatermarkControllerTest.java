@@ -36,8 +36,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         controllers = WatermarkController.class,
         excludeFilters = {
                 @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = {
-                        SecurityConfig.class,        // 네 보안 설정 클래스
-                        JwtAuthenticationFilter.class // 그리고 문제의 필터
+                        SecurityConfig.class,
+                        JwtAuthenticationFilter.class
                 })
         }
 )@AutoConfigureMockMvc(addFilters = false)
