@@ -35,8 +35,7 @@ public class WatermarkDetectionService {
     @Value("${flask.watermark-server.url}")
     private String flaskBaseUrl;
 
-    // pHash 임계값(64bit): 실데이터로 튜닝 요망 (10~12 사이 권장)
-    private static final int PHASH_THRESHOLD = 10;
+    private static final int PHASH_THRESHOLD = 30;
 
 
     public DetectResultDTO detect(Long userId, MultipartFile file, String taskId) {
