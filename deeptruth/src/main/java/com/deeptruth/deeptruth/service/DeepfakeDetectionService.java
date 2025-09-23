@@ -36,6 +36,7 @@ public class DeepfakeDetectionService {
     private final UserRepository userRepository;
     private final AmazonS3Service amazonS3Service;
     private final DeepfakeViewAssembler assembler;
+    private final ActiveTaskService activeTaskService;
     private final WebClient webClient;
     @Value("${flask.deepfakeServer.url}")
     private String flaskServerUrl;
@@ -63,6 +64,7 @@ public class DeepfakeDetectionService {
                 .contentType(file.getContentType() != null ? MediaType.parseMediaType(file.getContentType())
                         : MediaType.APPLICATION_OCTET_STREAM);
 
+        passThrough(mb, "loginId", user.getLoginId());
         passThrough(mb, "taskId", taskId);
         passThrough(mb, "mode", form.get("mode"));
         passThrough(mb, "detector", form.get("detector"));
@@ -74,6 +76,7 @@ public class DeepfakeDetectionService {
 //        passThrough(mb, "target_fps", form.get("target_fps"));
 //        passThrough(mb, "max_latency_ms", form.get("max_latency_ms"));
 
+        activeTaskService.registerTask(user.getLoginId(), taskId);
         FlaskResponseDTO flaskResult;
         try {
             flaskResult = webClient.post()
@@ -91,6 +94,8 @@ public class DeepfakeDetectionService {
             throw new ExternalServiceException("Flask request failed: " + e.getMessage());
         }  catch (Exception e) {
             throw new ExternalServiceException("Flask invocation failed");
+        } finally {
+            activeTaskService.registerTask(user.getLoginId(), taskId);
         }
 
 

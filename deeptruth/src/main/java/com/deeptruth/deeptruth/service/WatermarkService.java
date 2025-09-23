@@ -85,6 +85,7 @@ public class WatermarkService {
         builder.part("image", imagePart);
         builder.part("message", message);
         builder.part("taskId", taskId);
+        builder.part("loginId", user.getLoginId());
 
         WatermarkFlaskResponseDTO flask;
         try {
