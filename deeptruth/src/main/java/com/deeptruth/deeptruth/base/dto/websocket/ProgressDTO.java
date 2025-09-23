@@ -10,5 +10,5 @@ import lombok.Setter;
 public class ProgressDTO {
     private String taskId;
     private int progress;
-    private String userId;
+    private String loginId;
 }

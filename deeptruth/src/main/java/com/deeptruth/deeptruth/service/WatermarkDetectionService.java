@@ -110,6 +110,7 @@ public class WatermarkDetectionService {
         form.add("image", imagePart);
         form.add("message", message);
         form.add("taskId", taskId);
+        form.add("loginId", user.getLoginId());
 
         WatermarkDetectionFlaskResponseDTO flask;
         try {

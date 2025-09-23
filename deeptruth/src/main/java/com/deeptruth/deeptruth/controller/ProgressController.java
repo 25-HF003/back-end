@@ -24,10 +24,10 @@ public class ProgressController {
     @PostMapping
     public ResponseEntity<Void> receiveProgress(@RequestBody ProgressDTO progressDto) {
 
-        String userId = progressDto.getUserId();
+        String loginId = progressDto.getLoginId();
 
         messagingTemplate.convertAndSendToUser(
-                userId,
+                loginId,
                 "/topic/progress/" + progressDto.getTaskId(),
                 progressDto
         );
