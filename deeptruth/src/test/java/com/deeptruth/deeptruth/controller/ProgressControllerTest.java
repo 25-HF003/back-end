@@ -46,11 +46,11 @@ class ProgressControllerTest {
 
     @Test
     @DisplayName("POST /progress → WebSocket topic으로 ProgressDTO 전달 성공")
-    @WithMockCustomUser(userId = 7L, role = "USER")
+    @WithMockCustomUser(userId = 7L, loginId = "user123", role = "USER")
     void receiveProgress_success() throws Exception {
         String json = """
             {
-              "userId" : "7L",
+              "loginId" : "user123",
               "taskId": "task-123",
               "progress": 50
             }
@@ -62,9 +62,9 @@ class ProgressControllerTest {
                 .andExpect(status().isOk());
 
         // SimpMessagingTemplate이 올바른 경로와 객체로 호출되었는지 검증
-        ProgressDTO expectedDto = new ProgressDTO("task-123", 50, "7L");
+        ProgressDTO expectedDto = new ProgressDTO("task-123", 50, "user123");
         verify(messagingTemplate).convertAndSendToUser(
-                eq("7L"),
+                eq("user123"),
                 eq("/topic/progress/task-123"),
                 Mockito.refEq(expectedDto)
         );
