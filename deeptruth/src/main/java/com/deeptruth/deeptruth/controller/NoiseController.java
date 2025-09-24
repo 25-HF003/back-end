@@ -33,10 +33,6 @@ import java.util.List;
 public class NoiseController {
 
     private final NoiseService noiseService;
-    private final WebClient webClient;
-
-    @Value("${flask.noiseServer.url}")
-    private String flaskServerUrl; // http://localhost:5002
 
     @PostMapping
     public ResponseEntity<ResponseDTO<NoiseDTO>> createNoise(
@@ -46,10 +42,6 @@ public class NoiseController {
             @RequestParam(value = "level", defaultValue = "2") Integer level,
             @RequestParam(value = "taskId", required = false)  String taskId) {
         try {
-            if (taskId == null || taskId.isBlank()) {
-                taskId = java.util.UUID.randomUUID().toString();
-            }
-
             if (userDetails == null) {
                 return ResponseEntity.status(401)
                         .body(ResponseDTO.fail(401, "인증이 필요합니다."));
@@ -57,69 +49,28 @@ public class NoiseController {
 
             if (multipartFile.isEmpty()) {
                 return ResponseEntity.status(400)
-                        .body(ResponseDTO.fail(400, "파일이 비어있습니다."));
+                        .body(ResponseDTO.fail(400, "파일이 필요합니다."));
             }
 
-            if (!mode.equals("auto") && !mode.equals("precision")) {
-                return ResponseEntity.status(400)
-                        .body(ResponseDTO.fail(400, "유효하지 않은 모드입니다."));
-            }
+            NoiseDTO result = noiseService.createNoise(
+                    userDetails.getUserId(),
+                    userDetails.getUser().getLoginId(),
+                    multipartFile,
+                    mode,
+                    level,
+                    taskId
+            );
 
-            if ("precision".equals(mode) && (level < 1 || level > 4)) {
-                return ResponseEntity.status(400)
-                        .body(ResponseDTO.fail(400, "정밀 모드의 level은 1-4 사이여야 합니다."));
-            }
+            return ResponseEntity.ok(ResponseDTO.success(200, "적대적 노이즈 삽입 성공", result));
 
-            // Flask 호출
-            ByteArrayResource resource = new ByteArrayResource(multipartFile.getBytes()) {
-                @Override
-                public String getFilename() {
-                    return multipartFile.getOriginalFilename();
-                }
-            };
-
-            MultiValueMap<String, Object> form = new LinkedMultiValueMap<>();
-            form.add("file", resource);
-            form.add("mode", mode);
-            form.add("level", level);
-            form.add("taskId", taskId);
-
-            // Flask API 호출
-            NoiseFlaskResponseDTO flaskResult = webClient.post()
-                    .uri(flaskServerUrl + "/upload")
-                    .contentType(MediaType.MULTIPART_FORM_DATA)
-                    .body(BodyInserters.fromMultipartData(form))
-                    .retrieve()
-                    .bodyToMono(NoiseFlaskResponseDTO.class)
-                    .block();
-
-            if (flaskResult == null) {
-                return ResponseEntity.status(500)
-                        .body(ResponseDTO.fail(500, "Flask 서버 응답 실패"));
-            }
-
-            // S3 업로드
-            if (flaskResult.getOriginalFilePath() != null &&
-                    flaskResult.getOriginalFilePath().startsWith("data:image/")) {
-                String originalUrl = noiseService.uploadBase64ImageToS3(
-                        flaskResult.getOriginalFilePath(), userDetails.getUserId(), "original", multipartFile.getOriginalFilename());
-                flaskResult.setOriginalFilePath(originalUrl);
-            }
-            if (flaskResult.getProcessedFilePath() != null &&
-                    flaskResult.getProcessedFilePath().startsWith("data:image/")) {
-                String processedUrl = noiseService.uploadBase64ImageToS3(
-                        flaskResult.getProcessedFilePath(), userDetails.getUserId(), "processed", multipartFile.getOriginalFilename());
-                flaskResult.setProcessedFilePath(processedUrl);
-            }
-            // Service 호출
-            NoiseDTO createdNoise = noiseService.createNoise(userDetails.getUserId(), flaskResult, multipartFile.getOriginalFilename());;
-
-            return ResponseEntity.ok(ResponseDTO.success(200, "적대적 노이즈 삽입 성공", createdNoise));
-
+        } catch (IllegalArgumentException e) {
+            log.warn("잘못된 요청 파라미터", e);
+            return ResponseEntity.status(400)
+                    .body(ResponseDTO.fail(400, e.getMessage()));
         } catch (Exception e) {
-            log.error("적대적 노이즈 생성 중 오류 발생: ", e);
+            log.error("적대적 노이즈 삽입 중 오류 발생", e);
             return ResponseEntity.status(500)
-                    .body(ResponseDTO.fail(500, "서버 오류: " + e.getMessage()));
+                    .body(ResponseDTO.fail(500, "서버 내부 오류가 발생했습니다."));
         }
     }
 
