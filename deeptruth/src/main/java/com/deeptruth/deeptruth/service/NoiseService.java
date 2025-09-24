@@ -7,12 +7,19 @@ import com.deeptruth.deeptruth.entity.Noise;
 import com.deeptruth.deeptruth.entity.User;
 import com.deeptruth.deeptruth.repository.NoiseRepository;
 import com.deeptruth.deeptruth.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.data.domain.Pageable;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.http.MediaType;
+import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.reactive.function.BodyInserters;
+import org.springframework.web.reactive.function.client.WebClient;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -31,46 +38,176 @@ public class NoiseService {
     private final NoiseRepository noiseRepository;
     private final UserRepository userRepository;
     private final AmazonS3Service amazonS3Service;
+    private final ActiveTaskService activeTaskService;
+    private final WebClient webClient;
 
-    public NoiseDTO createNoise(Long userId, NoiseFlaskResponseDTO dto, String originFileName) {
+    @Value("${flask.noiseServer.url}")
+    private String flaskServerUrl;
+
+    public NoiseDTO createNoise(Long userId, String loginId, MultipartFile multipartFile,
+                                String mode, Integer level, String taskId) {
+
+        // 1. taskId 생성
+        if (taskId == null || taskId.isBlank()) {
+            taskId = UUID.randomUUID().toString();
+        }
+
+        // 2. 비즈니스 검증
+        validateBusinessParameters(multipartFile, mode, level);
+
+        // 3. 사용자 조회
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException(userId));
 
+        // 4. 웹소켓 세션 관리
+        activeTaskService.registerTask(loginId, taskId);
+
+        try {
+            // 5. Flask API 호출
+            NoiseFlaskResponseDTO flaskResponse = callFlaskAPI(multipartFile, mode, level, taskId, loginId);
+
+            // 6. 이미지 후처리 (S3 업로드)
+            processImageUploads(flaskResponse, userId, multipartFile.getOriginalFilename());
+
+            // 7. 데이터베이스 저장
+            return saveNoiseEntity(user, flaskResponse, multipartFile.getOriginalFilename());
+
+        } finally {
+            // 8. 세션 정리
+            activeTaskService.deregisterTask(loginId);
+        }
+    }
+
+    // 비즈니스 파라미터 검증
+    private void validateBusinessParameters(MultipartFile file, String mode, Integer level) {
+
+        // 파일 검증
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("파일이 필요합니다.");
+        }
+
+        // 파일 크기 검증 (10MB 제한)
+        if (file.getSize() > 10 * 1024 * 1024) {
+            throw new IllegalArgumentException("파일 크기는 10MB를 초과할 수 없습니다.");
+        }
+
+        // 모드 검증
+        if (!mode.equals("auto") && !mode.equals("precision")) {
+            throw new IllegalArgumentException("mode는 'auto' 또는 'precision'이어야 합니다.");
+        }
+
+        // 레벨 검증
+        if ("precision".equals(mode) && (level < 1 || level > 4)) {
+            throw new IllegalArgumentException("precision 모드에서 level은 1-4 사이여야 합니다.");
+        }
+    }
+
+    // Flask 호출
+    private NoiseFlaskResponseDTO callFlaskAPI(MultipartFile multipartFile, String mode,
+                                               Integer level, String taskId, String loginId) {
+        try {
+            log.info("Flask API 호출 시작 - taskId: {}, loginId: {}", taskId, loginId);
+
+            // 파일 리소스 준비
+            ByteArrayResource resource = new ByteArrayResource(multipartFile.getBytes()) {
+                @Override
+                public String getFilename() {
+                    return multipartFile.getOriginalFilename();
+                }
+            };
+
+            // 요청 데이터 구성
+            MultipartBodyBuilder builder = new MultipartBodyBuilder();
+            builder.part("file", resource);
+            builder.part("mode", mode);
+            builder.part("level", level);
+            builder.part("taskId", taskId);
+            builder.part("loginId", loginId);
+
+            // Flask API 호출
+            NoiseFlaskResponseDTO response = webClient.post()
+                    .uri(flaskServerUrl + "/upload")
+                    .contentType(MediaType.MULTIPART_FORM_DATA)
+                    .body(BodyInserters.fromMultipartData(builder.build()))
+                    .retrieve()
+                    .bodyToMono(NoiseFlaskResponseDTO.class)
+                    .block();
+
+            if (response == null) {
+                throw new RuntimeException("Flask 서버에서 응답을 받지 못했습니다.");
+            }
+
+            log.info("Flask API 호출 성공 - taskId: {}, attackSuccess: {}",
+                    response.getTaskId(), response.getAttackSuccess());
+
+            return response;
+
+        } catch (Exception e) {
+            log.error("Flask API 호출 실패: {}", e.getMessage());
+            throw new RuntimeException("Flask API 호출 중 오류가 발생했습니다: " + e.getMessage());
+        }
+    }
+
+    // 이미지 S3 업로드 처리
+    private void processImageUploads(NoiseFlaskResponseDTO flaskResult, Long userId, String filename) {
+
+        // 원본 이미지 업로드
+        if (flaskResult.getOriginalFilePath() != null &&
+                flaskResult.getOriginalFilePath().startsWith("data:image")) {
+
+            String originalUrl = uploadBase64ImageToS3(
+                    flaskResult.getOriginalFilePath(), userId, "original", filename
+            );
+            flaskResult.setOriginalFilePath(originalUrl);
+        }
+
+        // 처리된 이미지 업로드
+        if (flaskResult.getProcessedFilePath() != null &&
+                flaskResult.getProcessedFilePath().startsWith("data:image")) {
+
+            String processedUrl = uploadBase64ImageToS3(
+                    flaskResult.getProcessedFilePath(), userId, "processed", filename
+            );
+            flaskResult.setProcessedFilePath(processedUrl);
+        }
+    }
+
+    // 노이즈 엔티티 저장
+    private NoiseDTO saveNoiseEntity(User user, NoiseFlaskResponseDTO flaskResponse, String originalFileName) {
+
         // Flask 응답 검증
-        if (dto == null)
-            throw new InvalidNoiseResponseException("response is null");
-        if (dto.getAttackSuccess() == null)
-            throw new InvalidNoiseResponseException("attackSuccess is null");
-        if (dto.getOriginalFilePath() == null || dto.getOriginalFilePath().isBlank())
-            throw new InvalidNoiseResponseException("originalFilePath is blank");
-        if (dto.getProcessedFilePath() == null || dto.getProcessedFilePath().isBlank())
-            throw new InvalidNoiseResponseException("processedFilePath is blank");
+        if (flaskResponse.getAttackSuccess() == null) {
+            throw new RuntimeException("Flask 응답이 유효하지 않습니다.");
+        }
 
-        log.info("📍 NoiseService - 받은 데이터:");
-        log.info("- originalFilePath: {}", dto.getOriginalFilePath().startsWith("http") ? "S3 URL" : "Base64");
-        log.info("- processedFilePath: {}", dto.getProcessedFilePath().startsWith("http") ? "S3 URL" : "Base64");
+        // 파일명 생성
+        String userFileName = generateFileName(originalFileName);
 
-        String userFileName = generateFileName(originFileName);
-
-        // Entity 생성 및 저장
+        // 엔티티 생성
         Noise noise = Noise.builder()
                 .user(user)
-                .originalFileName(originFileName)  // 원본 파일명
-                .fileName(userFileName)  // 저장용 파일명
-                .originalFilePath(dto.getOriginalFilePath())
-                .processedFilePath(dto.getProcessedFilePath())
-                .epsilon(dto.getEpsilon())
-                .attackSuccess(dto.getAttackSuccess())
-                .originalPrediction(dto.getOriginalPrediction())
-                .adversarialPrediction(dto.getAdversarialPrediction())
-                .originalConfidence(dto.getOriginalConfidence())
-                .adversarialConfidence(dto.getAdversarialConfidence())
-                .mode(dto.getMode())
-                .level(dto.getLevel())
+                .originalFileName(originalFileName)
+                .fileName(userFileName)
+                .originalFilePath(flaskResponse.getOriginalFilePath())
+                .processedFilePath(flaskResponse.getProcessedFilePath())
+                .epsilon(flaskResponse.getEpsilon())
+                .attackSuccess(flaskResponse.getAttackSuccess())
+                .originalPrediction(flaskResponse.getOriginalPrediction())
+                .adversarialPrediction(flaskResponse.getAdversarialPrediction())
+                .originalConfidence(flaskResponse.getOriginalConfidence())
+                .adversarialConfidence(flaskResponse.getAdversarialConfidence())
+                .mode(flaskResponse.getMode())
+                .level(flaskResponse.getLevel())
                 .build();
 
+        // 데이터베이스 저장
         noiseRepository.save(noise);
-        return NoiseDTO.fromEntityWithFlaskData(noise, dto);
+
+        log.info("적대적 노이즈 엔티티 저장 완료 - 사용자: {}, 파일: {}",
+                user.getLoginId(), originalFileName);
+
+        // DTO 변환 후 반환
+        return NoiseDTO.fromEntityWithFlaskData(noise, flaskResponse);
     }
 
     // S3 업로드 메소드
