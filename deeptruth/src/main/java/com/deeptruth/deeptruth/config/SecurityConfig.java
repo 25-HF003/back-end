@@ -31,17 +31,21 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
+                                "/",
+                                "hello",
                                 "/api/auth/**",
-                                "/api/**",
                                 "/oauth2/**",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
-                                "/**"  // ⚡ 모든 요청을 인증 없이 허용 (임시 설정)
+                                "/progress/**",
+                                "/ws/**"
                         ).permitAll()
-                        .requestMatchers("/api/noise/**",
-                                            "/api/users/**"
+                        .requestMatchers("/api/users/**",
+                                        "/api/noise/**",
+                                        "/api/deepfake/**",
+                                        "/api/watermark/**"
                         ).authenticated()
-                        .anyRequest().permitAll()
+                        .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth2 -> oauth2
                         .userInfoEndpoint(userInfo -> userInfo
