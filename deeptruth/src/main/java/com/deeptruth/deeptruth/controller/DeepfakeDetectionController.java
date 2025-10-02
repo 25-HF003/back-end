@@ -3,6 +3,7 @@ package com.deeptruth.deeptruth.controller;
 import com.deeptruth.deeptruth.base.dto.deepfake.DeepfakeDetectionDTO;
 import com.deeptruth.deeptruth.base.dto.deepfake.DeepfakeDetectionListDTO;
 import com.deeptruth.deeptruth.base.dto.response.ResponseDTO;
+import com.deeptruth.deeptruth.base.dto.websocket.TaskAcceptedDTO;
 import com.deeptruth.deeptruth.config.CustomUserDetails;
 import com.deeptruth.deeptruth.service.DeepfakeDetectionService;
 import lombok.RequiredArgsConstructor;
@@ -31,8 +32,10 @@ public class DeepfakeDetectionController {
             @RequestPart("file")MultipartFile multipartFile,
             @RequestParam(required = false) Map<String, String> params){
             Map<String, String> form = (params == null) ? new HashMap<>() : params;
-            DeepfakeDetectionDTO dto = deepfakeDetectionService.createDetection(userDetails.getUserId(), multipartFile, form);
-            return ResponseEntity.ok(ResponseDTO.success(200, "딥페이크 탐지 결과 수신 성공", dto));
+            TaskAcceptedDTO accepted =
+                deepfakeDetectionService.createDetectionAsync(userDetails.getUserId(), multipartFile, form);
+
+        return ResponseEntity.accepted().body(ResponseDTO.success(202, "작업 접수됨", accepted));
     }
 
     @GetMapping
