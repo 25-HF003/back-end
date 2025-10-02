@@ -38,6 +38,7 @@ public class WatermarkService {
     private final UserRepository userRepository;
     private final AmazonS3Service amazonS3Service;
     private final WebClient webClient;
+    private final ActiveTaskService activeTaskService;
 
     @Value("${flask.watermarkServer.url}")
     private String flaskServerUrl;
@@ -87,6 +88,7 @@ public class WatermarkService {
         builder.part("taskId", taskId);
         builder.part("loginId", user.getLoginId());
 
+        activeTaskService.registerTask(user.getLoginId(), taskId);
         WatermarkFlaskResponseDTO flask;
         try {
             flask = webClient.post()
@@ -105,6 +107,8 @@ public class WatermarkService {
             throw new ExternalServiceException("Flask request failed: " + e.getMessage());
         } catch (Exception e) {
             throw new ExternalServiceException("Flask invocation failed");
+        } finally {
+            activeTaskService.registerTask(user.getLoginId(), taskId);
         }
 
         if (flask == null || flask.getImage_base64() == null || flask.getImage_base64().isBlank()) {
