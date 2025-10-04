@@ -138,8 +138,9 @@ public class WatermarkDetectionService {
         } catch (Exception e) {
             throw new ExternalServiceException("Flask invocation failed");
         } finally {
-            activeTaskService.registerTask(user.getLoginId(), taskId);
+            activeTaskService.deregisterTask(user.getLoginId());
         }
+
 
         if (flask == null) {
             throw new ExternalServiceException("Flask 응답이 비어 있습니다.");

@@ -95,8 +95,9 @@ public class DeepfakeDetectionService {
         }  catch (Exception e) {
             throw new ExternalServiceException("Flask invocation failed");
         } finally {
-            activeTaskService.registerTask(user.getLoginId(), taskId);
+            activeTaskService.deregisterTask(user.getLoginId());
         }
+
 
 
         if (flaskResult == null) {

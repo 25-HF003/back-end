@@ -4,6 +4,7 @@ import com.deeptruth.deeptruth.base.dto.websocket.ProgressDTO;
 import com.deeptruth.deeptruth.config.CustomUserDetails;
 import com.deeptruth.deeptruth.entity.User;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.nio.file.attribute.UserPrincipal;
 
+@Slf4j
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/progress")
@@ -31,6 +33,7 @@ public class ProgressController {
                 "/topic/progress/" + progressDto.getTaskId(),
                 progressDto
         );
+        log.info("progress:{}",progressDto.getProgress());
         return ResponseEntity.ok().build();
     }
 }

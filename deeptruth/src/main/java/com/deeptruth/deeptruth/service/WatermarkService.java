@@ -108,7 +108,7 @@ public class WatermarkService {
         } catch (Exception e) {
             throw new ExternalServiceException("Flask invocation failed");
         } finally {
-            activeTaskService.registerTask(user.getLoginId(), taskId);
+            activeTaskService.deregisterTask(user.getLoginId());
         }
 
         if (flask == null || flask.getImage_base64() == null || flask.getImage_base64().isBlank()) {
