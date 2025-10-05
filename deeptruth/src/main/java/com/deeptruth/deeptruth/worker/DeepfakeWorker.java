@@ -62,7 +62,7 @@ public class DeepfakeWorker {
         final String loginId = msg.getLoginId();
 
         try {
-            sendProgress(loginId, taskId, 5);
+            // sendProgress(loginId, taskId, 5);
 
             final String filename = Optional.ofNullable(msg.getOriginalFilename()).orElse("upload.bin");
             final String contentType = Optional.ofNullable(msg.getContentType()).orElse(MediaType.APPLICATION_OCTET_STREAM_VALUE);
@@ -98,7 +98,7 @@ public class DeepfakeWorker {
             pass(mb, "sample_count", msg.getSampleCount());
             pass(mb, "smooth_window", msg.getSmoothWindow());
 
-            sendProgress(loginId, taskId, 10);
+           //  sendProgress(loginId, taskId, 10);
 
             // 2) Flask 호출
             FlaskResponseDTO flask = webClient.post()
@@ -117,13 +117,13 @@ public class DeepfakeWorker {
                 flask.setImageUrl(uploaded);
             }
 
-            sendProgress(loginId, taskId, 70);
+            // sendProgress(loginId, taskId, 70);
 
             // 4) DB 저장 + WS 완료
             User user = userRepository.findById(msg.getUserId())
                     .orElseThrow(() -> new RuntimeException("User not found: " + msg.getUserId()));
 
-            DeepfakeDetection entity = mapToEntity(user, flask); // 네 기존 메서드 재사용
+            DeepfakeDetection entity = mapToEntity(user, flask);
             List<BulletDTO> stability = assembler.makeStabilityBullets(entity);
             List<BulletDTO> speed = assembler.makeSpeedBullets(entity);
             if (stability == null || speed == null) throw new RuntimeException("bullet assembling failed");
@@ -131,7 +131,7 @@ public class DeepfakeWorker {
             entity.setSpeedScore(DeepfakeViewAssembler.meanScore(speed));
             repo.save(entity);
 
-            sendProgress(loginId, taskId, 100);
+            // sendProgress(loginId, taskId, 100);
 
             ws.convertAndSendToUser(loginId, "/queue/tasks/" + taskId,
                     TaskEvent.done(taskId, DeepfakeDetectionDTO.fromEntity(entity, stability, speed)));
