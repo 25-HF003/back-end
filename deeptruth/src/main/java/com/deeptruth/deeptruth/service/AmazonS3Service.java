@@ -140,5 +140,21 @@ public class AmazonS3Service {
         }
     }
 
+    public String uploadBinary(InputStream in, String key, String contentType) {
+        try {
+            ObjectMetadata metadata = new ObjectMetadata();
+            metadata.setContentType(contentType != null ? contentType : "application/octet-stream");
+
+            amazonS3Client.putObject(new PutObjectRequest(bucketName, key, in, metadata));
+
+            return amazonS3Client.getUrl(bucketName, key).toString();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to upload binary to S3", e);
+        }
+    }
+
+    public InputStream openStream(String key) {
+        return amazonS3Client.getObject(bucketName, key).getObjectContent();
+    }
 
 }
