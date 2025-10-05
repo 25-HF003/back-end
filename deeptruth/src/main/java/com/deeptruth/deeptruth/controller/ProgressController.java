@@ -30,7 +30,7 @@ public class ProgressController {
 
         messagingTemplate.convertAndSendToUser(
                 loginId,
-                "/topic/progress/" + progressDto.getTaskId(),
+                "/queue/progress/" + progressDto.getTaskId(),
                 progressDto
         );
         log.info("progress:{}",progressDto.getProgress());
