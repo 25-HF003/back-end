@@ -31,6 +31,7 @@ public class WatermarkDetectionService {
     private final WatermarkRepository watermarkRepository;
     private final WebClient webClient;
     private final UserRepository userRepository;
+    private final ActiveTaskService activeTaskService;
 
     @Value("${flask.watermark-server.url}")
     private String flaskBaseUrl;
@@ -112,6 +113,7 @@ public class WatermarkDetectionService {
         form.add("taskId", taskId);
         form.add("loginId", user.getLoginId());
 
+        activeTaskService.registerTask(user.getLoginId(), taskId);
         WatermarkDetectionFlaskResponseDTO flask;
         try {
             flask = webClient.post()
@@ -135,7 +137,10 @@ public class WatermarkDetectionService {
             throw new ExternalServiceException("Flask request failed: " + e.getMessage());
         } catch (Exception e) {
             throw new ExternalServiceException("Flask invocation failed");
+        } finally {
+            activeTaskService.deregisterTask(user.getLoginId());
         }
+
 
         if (flask == null) {
             throw new ExternalServiceException("Flask 응답이 비어 있습니다.");
