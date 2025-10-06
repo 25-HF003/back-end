@@ -13,12 +13,15 @@ import org.springframework.web.socket.server.support.HttpSessionHandshakeInterce
 
 @Configuration
 @EnableWebSocketMessageBroker
+@RequiredArgsConstructor
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Value("${app.frontend.url}")
     private String frontendUrl;
 
     @Value("${app.backend.url}")
     private String backendUrl;
+
+    private final WebSocketAuthChannelInterceptor authInterceptor;
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
@@ -34,6 +37,11 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                 .setAllowedOrigins(frontendUrl, backendUrl)
                 .addInterceptors(httpSessionHandshakeInterceptor())
                 .withSockJS();
+    }
+
+    @Override
+    public void configureClientInboundChannel(ChannelRegistration registration) {
+        registration.interceptors(authInterceptor);
     }
 
     @Bean
